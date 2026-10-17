@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f5f2">
+  <meta name="description" content="Remove a plain background from a JPEG or PNG image in your browser and save a transparent PNG.">
+  <title>Clearcut — Background remover</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Clearcut home"><span class="brand-mark" aria-hidden="true">c</span>clearcut<span class="brand-dot">.</span></a>
+    <span class="privacy"><span class="privacy-dot"></span>Private by design · files stay on your device</span>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div class="eyebrow"><span class="eyebrow-line"></span>THE SIMPLE IMAGE TOOL</div>
+      <h1 id="page-title">A little less <span>background.</span></h1>
+      <p class="intro-copy">Make your image stand out. Remove a plain background, then take your transparent PNG anywhere.</p>
+    </section>
+
+    <section class="workspace" aria-label="Background remover">
+      <aside class="tools-panel">
+        <div class="panel-heading"><span class="step">01</span><div><h2>Your image</h2><p>Start with a JPG or PNG</p></div></div>
+        <label class="upload-card" id="dropZone" for="fileInput" tabindex="0">
+          <input id="fileInput" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden>
+          <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5"/></svg></span>
+          <span class="upload-title">Drop an image here</span>
+          <span class="upload-subtitle">or <span class="browse-link">browse files</span></span>
+          <span class="file-types">JPEG OR PNG <i>·</i> UP TO 25 MB</span>
+        </label>
+        <div class="file-info" id="fileInfo" hidden><span class="file-thumb" id="fileThumb"></span><span class="file-copy"><strong id="fileName"></strong><small id="fileDimensions"></small></span><button class="icon-button" id="clearButton" type="button" aria-label="Remove image">×</button></div>
+
+        <div class="divider"></div>
+        <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Fine-tune</h2><p>Tell us what to clear</p></div></div>
+        <div class="control-block">
+          <div class="control-title-row"><label for="tolerance">Color tolerance</label><output id="toleranceValue" for="tolerance">48</output></div>
+          <input id="tolerance" type="range" min="12" max="150" value="48" disabled>
+          <div class="range-ends"><span>Precise</span><span>More forgiving</span></div>
+        </div>
+        <div class="sample-control"><span class="sample-swatch" id="sampleSwatch"></span><span class="sample-copy"><strong>Background color</strong><small id="sampleLabel">Sampled from the corner</small></span><button id="sampleButton" class="sample-button" type="button" disabled>Pick color</button></div>
+        <p class="tip"><span aria-hidden="true">✳</span> For a different background, choose <b>Pick color</b> and click it in your image.</p>
+        <div class="divider output-divider"></div>
+        <div class="panel-heading export-heading"><span class="step">03</span><div><h2>Take it with you</h2><p>Transparent PNG, ready to go</p></div></div>
+        <div class="export-actions"><button id="downloadButton" class="primary-button" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg>Download PNG</button><button id="copyButton" class="secondary-button" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy image</span></button></div>
+        <p class="format-note">JPEGs become PNGs so the clear area stays transparent.</p>
+      </aside>
+
+      <section class="preview-panel" aria-label="Image preview">
+        <div class="preview-top"><div class="preview-label"><span class="live-dot"></span><span id="previewStatus">READY WHEN YOU ARE</span></div><div class="preview-dimensions" id="previewDimensions"></div></div>
+        <div class="canvas-wrap" id="canvasWrap">
+          <div class="empty-state" id="emptyState"><div class="empty-art" aria-hidden="true"><div class="art-back"></div><div class="art-photo"><span class="art-sun"></span><span class="art-hill hill-one"></span><span class="art-hill hill-two"></span><span class="art-frame"></span></div><span class="sparkle sparkle-one">✳</span><span class="sparkle sparkle-two">✳</span></div><h2>Your canvas is clear.</h2><p>Add an image and we’ll get to work.</p><span class="empty-caption">MADE FOR THE THINGS YOU MAKE</span></div>
+          <canvas id="previewCanvas" aria-label="Transparent background result preview" hidden></canvas>
+          <button id="pickOverlay" class="pick-overlay" type="button" hidden>Click the background color to sample it</button>
+        </div>
+        <div class="preview-bottom"><span class="checker-key"><i></i>Transparent areas</span><span id="canvasHint">Your image never leaves this browser.</span></div>
+      </section>
+    </section>
+    <footer class="page-footer"><span>Good things look better with a little breathing room.</span><span>MADE WITH CARE <b>✳</b></span></footer>
+  </main>
+</body>
+</html>
