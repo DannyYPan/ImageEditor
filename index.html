@@ -81,6 +81,7 @@
           <select id="cropRatio" class="tool-select" disabled><option value="free">Free crop</option><option value="1:1">1:1 · Square</option><option value="16:9">16:9 · Widescreen</option><option value="4:3">4:3 · Standard</option><option value="3:2">3:2 · Photo</option><option value="9:16">9:16 · Portrait</option><option value="custom">Custom ratio</option></select>
           <div class="crop-custom" id="cropCustom" hidden><label>Ratio width<input id="cropRatioW" type="number" min="1" value="1"></label><span>:</span><label>Ratio height<input id="cropRatioH" type="number" min="1" value="1"></label></div>
           <div class="crop-fields crop-dimensions"><label>Width (px)<input id="cropWidthInput" type="number" min="1" disabled></label><label>Height (px)<input id="cropHeightInput" type="number" min="1" disabled></label></div>
+          <button id="smartCropButton" class="sample-button smart-crop-button" type="button" disabled>Smart center on artwork</button>
           <div class="crop-fields" hidden><input id="cropWidthPx" type="hidden"><input id="cropHeightPx" type="hidden"><input id="cropLeftPx" type="hidden"><input id="cropTopPx" type="hidden"></div>
           <p class="crop-readout" id="cropSizeReadout">Drag the frame over the part of the image to preserve. Drag its corner to resize.</p>
         </div>

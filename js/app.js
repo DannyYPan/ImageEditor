@@ -12,7 +12,7 @@
     $('#previewStatus').textContent='READY WHEN YOU ARE';$('#previewDimensions').textContent='';$('#compareControls').hidden=true;
     $('#downloadButton').disabled=true;$('#copyButton').disabled=true;$('#tolerance').disabled=true;$('#sampleButton').disabled=true;
     $('#borderWidth').disabled=true;$('#outlineCount').disabled=true;$('#addColorButton').disabled=true;$('#colorSensitivity').disabled=true;
-    $('#cropRatio').disabled=true;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx','#cropWidthInput','#cropHeightInput'].forEach(id=>$(id).disabled=true);
+    $('#cropRatio').disabled=true;$('#smartCropButton').disabled=true;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx','#cropWidthInput','#cropHeightInput'].forEach(id=>$(id).disabled=true);
     $('#canvasHint').textContent='Your image never leaves this browser.';$('#pickOverlay').hidden=true;picking=false;$('#sampleButton').textContent='Pick color';
     refreshColorRules();refreshOutlineColors();
   }
@@ -49,17 +49,26 @@
 
   function hexRgb(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
   function outlineDistance(mask,w,h){
-    const distance=new Uint16Array(mask.length);distance.fill(65535);const coverage=new Uint8Array(mask.length);for(let i=0;i<mask.length;i++)if(mask[i]){distance[i]=0;coverage[i]=mask[i];}
-    const relax=(at,from,cost)=>{const next=distance[from]+cost;if(next<distance[at]){distance[at]=next;coverage[at]=coverage[from];}};
-    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(x)relax(i,i-1,3);if(y)relax(i,i-w,3);if(x&&y)relax(i,i-w-1,4);if(x+1<w&&y)relax(i,i-w+1,4);}
-    for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const i=y*w+x;if(x+1<w)relax(i,i+1,3);if(y+1<h)relax(i,i+w,3);if(x+1<w&&y+1<h)relax(i,i+w+1,4);if(x&&y+1<h)relax(i,i+w-1,4);}
-    return{distance,coverage};
+    // Chamfer distance with extra knight moves gives a much closer approximation
+    // to a round, even outline than spreading alpha one pixel at a time.
+    const distance=new Uint16Array(mask.length);distance.fill(65535);for(let i=0;i<mask.length;i++)if(mask[i]>4)distance[i]=0;
+    const relax=(at,from,cost)=>{const next=distance[from]+cost;if(next<distance[at])distance[at]=next;};
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(x)relax(i,i-1,10);if(y)relax(i,i-w,10);if(x&&y)relax(i,i-w-1,14);if(x+1<w&&y)relax(i,i-w+1,14);if(x>1&&y)relax(i,i-w-2,22);if(x+1<w-1&&y)relax(i,i-w+2,22);if(x&&y>1)relax(i,i-2*w-1,22);if(x+1<w&&y>1)relax(i,i-2*w+1,22);}
+    for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const i=y*w+x;if(x+1<w)relax(i,i+1,10);if(y+1<h)relax(i,i+w,10);if(x+1<w&&y+1<h)relax(i,i+w+1,14);if(x&&y+1<h)relax(i,i+w-1,14);if(x+2<w&&y+1<h)relax(i,i+w+2,22);if(x&&x>0&&y+1<h)relax(i,i+w-2,22);if(x+1<w&&y+2<h)relax(i,i+2*w+1,22);if(x&&y+2<h)relax(i,i+2*w-1,22);}
+    return distance;
   }
+  const smoothstep=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
 
   function cropRect(w,h){
     let cw=Math.min(w,Math.max(1,Number($('#cropWidthPx').value)||w)),ch=Math.min(h,Math.max(1,Number($('#cropHeightPx').value)||h));
     const left=Math.min(w-cw,Math.max(0,Number($('#cropLeftPx').value)||0)),top=Math.min(h-ch,Math.max(0,Number($('#cropTopPx').value)||0));
     return{x:left,y:top,w:cw,h:ch};
+  }
+  function smartCenterCrop(){if(!sourceImage||!sourcePixels)return;const w=sourceImage.naturalWidth,h=sourceImage.naturalHeight,crop=cropRect(w,h),data=sourcePixels.data;let minX=w,minY=h,maxX=-1,maxY=-1;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(data[(y*w+x)*4+3]>4){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
+    if(maxX<0){setCropNumbers({...crop,x:Math.round((w-crop.w)/2),y:Math.round((h-crop.h)/2)});}
+    else{const centerX=(minX+maxX+1)/2,centerY=(minY+maxY+1)/2;setCropNumbers({...crop,x:Math.max(0,Math.min(w-crop.w,Math.round(centerX-crop.w/2))),y:Math.max(0,Math.min(h-crop.h,Math.round(centerY-crop.h/2)))});}
+    scheduleRender(0);
   }
   function updateCropFrame(){
     if(!sourceImage||currentTool!=='crop')return;const frame=$('#cropFrame'),imageRect=beforeCanvas.getBoundingClientRect(),stackRect=canvasStack.getBoundingClientRect(),crop=cropRect(sourceImage.naturalWidth,sourceImage.naturalHeight),sx=imageRect.width/sourceImage.naturalWidth,sy=imageRect.height/sourceImage.naturalHeight;
@@ -80,8 +89,13 @@
     const work=document.createElement('canvas');work.width=outW;work.height=outH;const workCtx=work.getContext('2d',{willReadFrequently:true});
     if(border){
       const total=outW*outH,mask=new Uint8Array(total);for(let y=0;y<h;y++)for(let x=0;x<w;x++)mask[(y+padding)*outW+x+padding]=pixels[(y*w+x)*4+3];
-      const {distance,coverage}=outlineDistance(mask,outW,outH),colors=Array.from({length:count},(_,i)=>hexRgb($(`#outlineColor${i}`)?.value||'#ffffff')),layer=workCtx.createImageData(outW,outH),lp=layer.data,band=weight*3;
-      for(let i=0;i<total;i++){const d=distance[i];if(!d||d>band*count||!coverage[i])continue;const ring=Math.min(count-1,Math.floor((d-1)/band)),p=i*4,color=colors[ring];lp[p]=color[0];lp[p+1]=color[1];lp[p+2]=color[2];lp[p+3]=coverage[i];}workCtx.putImageData(layer,0,0);
+      const distance=outlineDistance(mask,outW,outH),colors=Array.from({length:count},(_,i)=>hexRgb($(`#outlineColor${i}`)?.value||'#ffffff')),layer=workCtx.createImageData(outW,outH),lp=layer.data,maxRadius=weight*count;
+      for(let i=0;i<total;i++){const encoded=distance[i];if(!encoded)continue;const radius=encoded/10;if(radius>maxRadius+.5)continue;const p=i*4,ring=Math.min(count-1,Math.floor((radius-.5)/weight));let color=colors[ring];
+        // Blend neighboring outline colors across a narrow band so their joins
+        // stay smooth and the requested color remains uniform across each ring.
+        const edge=radius/weight,near=Math.round(edge);if(near>0&&near<count&&Math.abs(edge-near)<.1){const t=smoothstep(-.1,.1,edge-near),inner=colors[near-1],outer=colors[near];color=inner.map((value,c)=>Math.round(value+(outer[c]-value)*t));}
+        lp[p]=color[0];lp[p+1]=color[1];lp[p+2]=color[2];lp[p+3]=Math.round(255*(1-smoothstep(maxRadius-.5,maxRadius+.5,radius)));
+      }workCtx.putImageData(layer,0,0);
     }
     if(border){const sourceLayer=document.createElement('canvas');sourceLayer.width=w;sourceLayer.height=h;sourceLayer.getContext('2d').putImageData(output,0,0);workCtx.drawImage(sourceLayer,padding,padding);}
     else workCtx.putImageData(output,0,0);
@@ -96,7 +110,7 @@
   }
 
   function updateComparison(){const showAfter=comparisonState==='after';canvas.style.clipPath='none';canvas.style.opacity=currentTool==='crop'?'0':showAfter?'1':'0';beforeCanvas.style.opacity=currentTool==='crop'?'1':showAfter?'0':'1';$('#comparisonToggle').dataset.state=comparisonState;document.querySelectorAll('[data-comparison]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.comparison===comparisonState)));}
-  function refreshOutlineColors(){const count=Number($('#outlineCount').value),container=$('#outlineColors'),old=Array.from(container.querySelectorAll('input')).map(input=>input.value);$('#outlineCountValue').value=count;container.replaceChildren();for(let i=0;i<count;i++){const label=document.createElement('label');label.className='outline-color';label.innerHTML=`<span>Outline ${i+1}</span>`;const color=document.createElement('input');color.type='color';color.id=`outlineColor${i}`;color.value=old[i]||'#ffffff';color.disabled=!sourceImage;color.addEventListener('input',updateOutput);label.append(color);container.append(label);}}
+  function refreshOutlineColors(){const count=Number($('#outlineCount').value),container=$('#outlineColors'),old=Array.from(container.querySelectorAll('.outline-color')).map(row=>row.querySelector('.outline-hex')?.value||row.querySelector('input[type="color"]')?.value||'#ffffff');$('#outlineCountValue').value=count;container.replaceChildren();for(let i=0;i<count;i++){const label=document.createElement('label');label.className='outline-color';const title=document.createElement('span');title.textContent=`Outline ${i+1}`;const controls=document.createElement('span');controls.className='outline-color-controls';const color=document.createElement('input');color.type='color';color.id=`outlineColor${i}`;color.value=/^#[\da-f]{6}$/i.test(old[i])?old[i]:'#ffffff';color.disabled=!sourceImage;const hex=document.createElement('input');hex.type='text';hex.className='outline-hex';hex.value=color.value;hex.setAttribute('aria-label',`Outline ${i+1} hex color`);hex.placeholder='#ffffff';hex.maxLength=7;hex.pattern='^#?[0-9a-fA-F]{6}$';hex.disabled=!sourceImage;color.addEventListener('input',()=>{hex.value=color.value;updateOutput();});hex.addEventListener('input',()=>{const value=hex.value.trim(),normalized=value.startsWith('#')?value:`#${value}`;if(/^#[\da-f]{6}$/i.test(normalized)){hex.value=normalized;color.value=normalized;updateOutput();}});hex.addEventListener('blur',()=>{if(!/^#[\da-f]{6}$/i.test(hex.value))hex.value=color.value;});controls.append(color,hex);label.append(title,controls);container.append(label);}}
   function refreshColorRules(){const container=$('#colorRules');container.replaceChildren();if(!colorRules.length){const p=document.createElement('p');p.className='empty-rules';p.textContent='No colors selected yet.';container.append(p);return;}colorRules.forEach((rule,index)=>{const row=document.createElement('div');row.className='color-rule';const original=document.createElement('span');original.className='rule-chip';original.style.backgroundColor=`rgb(${rule.from.join(',')})`;const arrow=document.createElement('span');arrow.className='rule-arrow';arrow.textContent='→';const target=document.createElement('input');target.type='color';target.value=rule.to;target.setAttribute('aria-label',`Replacement color ${index+1}`);target.addEventListener('input',()=>{rule.to=target.value;updateOutput();});const remove=document.createElement('button');remove.type='button';remove.className='icon-button';remove.textContent='×';remove.setAttribute('aria-label',`Remove color ${index+1}`);remove.addEventListener('click',()=>{colorRules.splice(index,1);refreshColorRules();updateOutput();});row.append(original,arrow,target,remove);container.append(row);});}
 
   function updateCropRatio(){if(!sourceImage)return;const mode=$('#cropRatio').value,w=sourceImage.naturalWidth,h=sourceImage.naturalHeight;$('#cropCustom').hidden=mode!=='custom';if(mode!=='free'){let rw,rh;if(mode==='custom'){rw=Math.max(1,Number($('#cropRatioW').value)||1);rh=Math.max(1,Number($('#cropRatioH').value)||1);}else[rw,rh]=mode.split(':').map(Number);let cw,ch;if(w/h>rw/rh){ch=h;cw=Math.round(h*rw/rh);}else{cw=w;ch=Math.round(w*rh/rw);}setCropNumbers({w:cw,h:ch,x:Math.floor((w-cw)/2),y:Math.floor((h-ch)/2)});}scheduleRender();}
@@ -115,7 +129,7 @@
       if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl=blobUrl;sourceImage=image;const pixelCanvas=document.createElement('canvas');pixelCanvas.width=image.naturalWidth;pixelCanvas.height=image.naturalHeight;const pixelCtx=pixelCanvas.getContext('2d',{willReadFrequently:true});pixelCtx.drawImage(image,0,0);sourcePixels=pixelCtx.getImageData(0,0,image.naturalWidth,image.naturalHeight);beforeKey='';sourceName=name.replace(/\.[^.]+$/,'')||'image';colorRules.splice(0);$('#fileInfo').hidden=false;$('#emptyState').hidden=true;canvasStack.hidden=false;
       $('#fileName').textContent=name;$('#fileDimensions').textContent=`${image.naturalWidth} × ${image.naturalHeight} px`;$('#fileThumb').style.backgroundImage=`url("${url}")`;
       $('#canvasHint').textContent=currentTool==='crop'?'Drag the crop frame to reposition it.':'Drag the comparison slider to see before and after.';$('#tolerance').disabled=false;$('#sampleButton').disabled=false;$('#borderWidth').disabled=false;$('#outlineCount').disabled=false;$('#addColorButton').disabled=false;$('#colorSensitivity').disabled=false;
-      $('#cropRatio').disabled=false;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx'].forEach(id=>$(id).disabled=false);
+      $('#cropRatio').disabled=false;$('#smartCropButton').disabled=false;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx'].forEach(id=>$(id).disabled=false);
       $('#cropRatio').value='free';$('#cropCustom').hidden=true;setCropNumbers({w:Math.max(1,Math.round(image.naturalWidth*.8)),h:Math.max(1,Math.round(image.naturalHeight*.8)),x:Math.round(image.naturalWidth*.1),y:Math.round(image.naturalHeight*.1)});comparisonState='after';
       refreshOutlineColors();refreshColorRules();setBackground([255,255,255],'Sampled from the corner');scheduleRender();
     };
@@ -178,6 +192,7 @@
   $('#pickOverlay').addEventListener('click',()=>{picking=false;$('#pickOverlay').hidden=true;$('#sampleButton').textContent='Pick color';});
   $('#borderWidth').addEventListener('input',()=>{$('#borderWidthValue').value=`${$('#borderWidth').value} px`;refreshOutlineColors();updateOutput();});$('#outlineCount').addEventListener('input',()=>{refreshOutlineColors();updateOutput();});$('#colorSensitivity').addEventListener('input',updateOutput);
   $('#cropRatio').addEventListener('change',updateCropRatio);$('#cropRatioW').addEventListener('input',()=>{if($('#cropRatio').value==='custom')updateCropRatio();});$('#cropRatioH').addEventListener('input',()=>{if($('#cropRatio').value==='custom')updateCropRatio();});
+  $('#smartCropButton').addEventListener('click',smartCenterCrop);
   $('#cropWidthInput').addEventListener('input',updateTypedCrop);$('#cropHeightInput').addEventListener('input',updateTypedCrop);
   $('#clearButton').addEventListener('click',clearCurrentImage);$('#downloadButton').addEventListener('click',exportImage);
   $('#copyButton').addEventListener('click',async()=>{if(!navigator.clipboard||typeof ClipboardItem==='undefined'){alert('Copying images is unavailable in this browser.');return;}try{const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);$('#copyButton span').textContent='Copied!';setTimeout(()=>$('#copyButton span').textContent='Copy PNG',1500);}catch{alert('Clipboard access was blocked.');}});
