@@ -48,10 +48,10 @@
   }
 
   function hexRgb(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
-  function outlineDistance(mask,w,h){
+  function outlineDistance(mask,w,h,alphaThreshold){
     // Chamfer distance with extra knight moves gives a much closer approximation
     // to a round, even outline than spreading alpha one pixel at a time.
-    const distance=new Uint16Array(mask.length);distance.fill(65535);for(let i=0;i<mask.length;i++)if(mask[i]>4)distance[i]=0;
+    const distance=new Uint16Array(mask.length);distance.fill(65535);for(let i=0;i<mask.length;i++)if(mask[i]>=alphaThreshold)distance[i]=0;
     const relax=(at,from,cost)=>{const next=distance[from]+cost;if(next<distance[at])distance[at]=next;};
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(x)relax(i,i-1,10);if(y)relax(i,i-w,10);if(x&&y)relax(i,i-w-1,14);if(x+1<w&&y)relax(i,i-w+1,14);if(x>1&&y)relax(i,i-w-2,22);if(x+1<w-1&&y)relax(i,i-w+2,22);if(x&&y>1)relax(i,i-2*w-1,22);if(x+1<w&&y>1)relax(i,i-2*w+1,22);}
     for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const i=y*w+x;if(x+1<w)relax(i,i+1,10);if(y+1<h)relax(i,i+w,10);if(x+1<w&&y+1<h)relax(i,i+w+1,14);if(x&&y+1<h)relax(i,i+w-1,14);if(x+2<w&&y+1<h)relax(i,i+w+2,22);if(x&&x>0&&y+1<h)relax(i,i+w-2,22);if(x+1<w&&y+2<h)relax(i,i+2*w+1,22);if(x&&y+2<h)relax(i,i+2*w-1,22);}
@@ -88,8 +88,10 @@
     const border=currentTool==='border',weight=Number($('#borderWidth').value),count=Number($('#outlineCount').value),padding=border?weight*count:0,outW=w+padding*2,outH=h+padding*2;
     const work=document.createElement('canvas');work.width=outW;work.height=outH;const workCtx=work.getContext('2d',{willReadFrequently:true});
     if(border){
-      const total=outW*outH,mask=new Uint8Array(total);for(let y=0;y<h;y++)for(let x=0;x<w;x++)mask[(y+padding)*outW+x+padding]=pixels[(y*w+x)*4+3];
-      const distance=outlineDistance(mask,outW,outH),colors=Array.from({length:count},(_,i)=>hexRgb($(`#outlineColor${i}`)?.value||'#ffffff')),layer=workCtx.createImageData(outW,outH),lp=layer.data,maxRadius=weight*count;
+      const total=outW*outH,mask=new Uint8Array(total);let peakAlpha=0;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const alpha=pixels[(y*w+x)*4+3];mask[(y+padding)*outW+x+padding]=alpha;if(alpha>peakAlpha)peakAlpha=alpha;}
+      // Use the opaque core as the contour. Semi-transparent edge pixels then
+      // sit over the outline and naturally blend with it instead of separating.
+      const distance=outlineDistance(mask,outW,outH,Math.max(1,Math.round(peakAlpha*.92))),colors=Array.from({length:count},(_,i)=>hexRgb($(`#outlineColor${i}`)?.value||'#ffffff')),layer=workCtx.createImageData(outW,outH),lp=layer.data,maxRadius=weight*count;
       for(let i=0;i<total;i++){const encoded=distance[i];if(!encoded)continue;const radius=encoded/10;if(radius>maxRadius+.5)continue;const p=i*4,ring=Math.min(count-1,Math.floor((radius-.5)/weight));let color=colors[ring];
         // Blend neighboring outline colors across a narrow band so their joins
         // stay smooth and the requested color remains uniform across each ring.
