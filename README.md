@@ -11,6 +11,8 @@ replacement for each, and adjust sensitivity to include more nearby shades.
 Paste an image with Ctrl+V, or use the picker/drop area. The Before/After
 toggle crossfades between your original and edited result. Switching tools clears
 the current image, so load it again in the tool you want to use.
+Use the preview zoom controls to magnify details, drag the zoomed image to pan,
+and choose **Fit** to return to the full preview. Zoom does not change exports.
 
 The crop tool supports common aspect ratios and a custom ratio. Drag the crop
 frame to choose the part of the photo to keep, and drag its corner to resize.
