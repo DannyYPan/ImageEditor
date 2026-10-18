@@ -10,11 +10,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/tools.css">
   <script src="js/app.js" defer></script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="#" aria-label="Clearcut home"><span class="brand-mark" aria-hidden="true">c</span>clearcut<span class="brand-dot">.</span></a>
+    <details class="tools-menu"><summary>☰ <span>Menu</span></summary><div class="menu-options"><button type="button" data-tool="remove">Background remover</button><button type="button" data-tool="border">Add a border</button><button type="button" data-tool="recolor">Change colors</button></div></details>
     <span class="privacy"><span class="privacy-dot"></span>Private by design · files stay on your device</span>
   </header>
 
@@ -38,6 +40,7 @@
         <div class="file-info" id="fileInfo" hidden><span class="file-thumb" id="fileThumb"></span><span class="file-copy"><strong id="fileName"></strong><small id="fileDimensions"></small></span><button class="icon-button" id="clearButton" type="button" aria-label="Remove image">×</button></div>
 
         <div class="divider"></div>
+        <div id="removeControls" class="tool-controls">
         <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Fine-tune</h2><p>Tell us what to clear</p></div></div>
         <div class="control-block">
           <div class="control-title-row"><label for="tolerance">Color tolerance</label><output id="toleranceValue" for="tolerance">48</output></div>
@@ -46,6 +49,28 @@
         </div>
         <div class="sample-control"><span class="sample-swatch" id="sampleSwatch"></span><span class="sample-copy"><strong>Background color</strong><small id="sampleLabel">Sampled from the corner</small></span><button id="sampleButton" class="sample-button" type="button" disabled>Pick color</button></div>
         <p class="tip"><span aria-hidden="true">✳</span> For a different background, choose <b>Pick color</b> and click it in your image.</p>
+        </div>
+        <div id="borderControls" class="tool-controls" hidden>
+          <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Add a border</h2><p>Trace the visible shape</p></div></div>
+          <p class="tool-description">The outline follows opaque pixels, including transparent PNGs. It expands outward from your artwork.</p>
+          <label class="enable-border"><input id="borderEnabled" type="checkbox" disabled> Add border to image</label>
+          <label class="field-label" for="borderWidth">Line weight <output id="borderWidthValue">8 px</output></label>
+          <input id="borderWidth" class="full-range" type="range" min="1" max="40" value="8" disabled>
+          <label class="field-label outline-count-label" for="outlineCount">Number of outlines <output id="outlineCountValue">1</output></label>
+          <input id="outlineCount" class="full-range" type="range" min="1" max="5" value="1" disabled>
+          <div id="outlineColors" class="outline-colors"></div>
+          <p class="tool-description small">Each outline adds one line weight. Colors are listed from inner to outer.</p>
+        </div>
+        <div id="recolorControls" class="tool-controls" hidden>
+          <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Change colors</h2><p>Replace several colors at once</p></div></div>
+          <p class="tool-description">Pick a color in the preview, then choose its replacement. Add as many color swaps as you need.</p>
+          <button id="addColorButton" class="sample-button add-color-button" type="button" disabled>＋ Pick a color to replace</button>
+          <label class="field-label sensitivity-label" for="colorSensitivity">Sensitivity <output id="colorSensitivityValue">35</output></label>
+          <input id="colorSensitivity" class="full-range" type="range" min="5" max="150" value="35" disabled>
+          <div class="range-ends recolor-ends"><span>Similar colors only</span><span>Include more shades</span></div>
+          <div id="colorRules" class="color-rules"><p class="empty-rules">No colors selected yet.</p></div>
+          <p class="tool-description small">Higher sensitivity also changes pixels that are close to the sampled color.</p>
+        </div>
         <div class="divider output-divider"></div>
         <div class="panel-heading export-heading"><span class="step">03</span><div><h2>Take it with you</h2><p>Transparent PNG, ready to go</p></div></div>
         <div class="export-actions"><button id="downloadButton" class="primary-button" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg>Download PNG</button><button id="copyButton" class="secondary-button" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy image</span></button></div>

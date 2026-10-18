@@ -4,6 +4,12 @@ Image Background Remover
 Clearcut is a small, browser based tool for removing a plain background from
 JPEG and PNG images. Open `index.html` in a modern browser to use it.
 
+Use the menu to switch between background removal, shape-following borders, and
+color replacement. Borders can have one to five colored outlines with a
+custom line weight. In the color tool, sample multiple source colors, choose a
+replacement for each, and adjust sensitivity to include more nearby shades.
+These edits can be combined before exporting the PNG.
+
 Choose an image or drop it into the upload area. The remover samples the image
 corners to find a background color; use **Pick color** to sample another spot,
 and adjust **Color tolerance** to refine the result. Download the transparent
