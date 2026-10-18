@@ -6,6 +6,37 @@
   const colorRules=[];
   let sourceImage=null,sourceName='image',sourceUrl='',currentTool='remove',background=[255,255,255],picking=false,renderTimer=0,generation=0,processedImage=null;
 
+  function initBranding(){
+    const titleInput=$('#brandTitleInput'),titleNode=$('#brandTitle'),logo=$('#brandLogoImage'),favicon=$('#faviconLink'),status=$('#brandStatus');
+    let logoFile=null,faviconFile=null;
+    try{
+      const title=localStorage.getItem('keystoneBrandTitle');if(title){titleNode.textContent=title;titleInput.value=title;document.title=`${title} — Image editor`;}
+      const logoData=localStorage.getItem('keystoneBrandLogo');if(logoData){logo.src=logoData;logo.hidden=false;$('.brand-mark').hidden=true;}
+      const faviconData=localStorage.getItem('keystoneBrandFavicon');if(faviconData)favicon.href=faviconData;
+    }catch{}
+    titleInput.addEventListener('input',()=>{const title=titleInput.value.trim()||'Keystone';titleNode.textContent=title;document.title=`${title} — Image editor`;try{localStorage.setItem('keystoneBrandTitle',title);}catch{status.textContent='Could not save the title in browser storage.';}});
+    const readPng=(file,kind)=>{
+      if(!file)return;if(file.type!=='image/png'){status.textContent='Please choose a PNG image.';return;}
+      if(file.size>2*1024*1024){status.textContent='Choose a PNG smaller than 2 MB.';return;}
+      const reader=new FileReader();reader.onload=()=>{try{
+        if(kind==='logo'){logoFile=file;localStorage.setItem('keystoneBrandLogo',reader.result);logo.src=reader.result;logo.hidden=false;$('.brand-mark').hidden=true;}
+        else{faviconFile=file;localStorage.setItem('keystoneBrandFavicon',reader.result);favicon.href=reader.result;}
+        status.textContent=`${kind==='logo'?'Logo':'Favicon'} updated. Save it to assets/ to use it in the project files.`;
+      }catch{status.textContent='Image is ready, but browser storage is full. Save it to assets/.';}};reader.readAsDataURL(file);
+    };
+    $('#logoUpload').addEventListener('change',event=>readPng(event.target.files[0],'logo'));
+    $('#faviconUpload').addEventListener('change',event=>readPng(event.target.files[0],'favicon'));
+    $('#saveAssetsButton').addEventListener('click',async()=>{
+      if(!window.showDirectoryPicker){status.textContent='Folder saving needs a supported desktop browser. Your branding remains saved in this browser.';return;}
+      if(!logoFile&&!faviconFile){status.textContent='Choose a logo PNG or favicon PNG first.';return;}
+      try{const root=await window.showDirectoryPicker({mode:'readwrite'});const assets=await root.getDirectoryHandle('assets',{create:true});
+        for(const [file,name] of [[logoFile,'logo.png'],[faviconFile,'favicon.png']])if(file){const handle=await assets.getFileHandle(name,{create:true}),writer=await handle.createWritable();await writer.write(file);await writer.close();}
+        status.textContent='PNG file(s) saved in the selected folder’s assets/ directory.';
+      }catch(error){if(error.name!=='AbortError')status.textContent='Could not write these files. Choose the project folder and allow access.';}
+    });
+  }
+  initBranding();
+
   function clearCurrentImage(){
     clearTimeout(renderTimer);if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl='';sourceImage=null;processedImage=null;colorRules.splice(0);
     canvas.width=canvas.height=beforeCanvas.width=beforeCanvas.height=0;canvasStack.hidden=true;$('#emptyState').hidden=false;$('#fileInfo').hidden=true;
@@ -35,8 +66,8 @@
     canvas.width=w;canvas.height=h;ctx.clearRect(0,0,w,h);ctx.drawImage(sourceImage,0,0,w,h);
     const imageData=ctx.getImageData(0,0,w,h),pixels=imageData.data;
     if(currentTool==='remove'){
-      const corners=[[0,0],[Math.max(0,w-4),0],[0,Math.max(0,h-4)],[Math.max(0,w-4),Math.max(0,h-4)]].map(([x,y])=>averageCorner(imageData,x,y,w,h)).sort((a,b)=>a[0]+a[1]+a[2]-b[0]-b[1]-b[2]);
-      if($('#sampleLabel').textContent==='Sampled from the corner'){background=[0,1,2].map(c=>Math.round((corners[1][c]+corners[2][c])/2));$('#sampleSwatch').style.backgroundColor=`rgb(${background.join(',')})`;}
+      const corners=[[0,0],[Math.max(0,w-4),0],[0,Math.max(0,h-4)],[Math.max(0,w-4),Math.max(0,h-4)]].map(([x,y])=>averageCorner(imageData,x,y,w,h));
+      if($('#sampleLabel').textContent==='Sampled from the corner'){background=[0,1,2].map(c=>Math.round(corners.map(color=>color[c]).sort((a,b)=>a-b).slice(1,3).reduce((sum,value)=>sum+value,0)/2));$('#sampleSwatch').style.backgroundColor=`rgb(${background.join(',')})`;}
       const tolerance=Number($('#tolerance').value),outer=tolerance+34,size=w*h,seen=new Uint8Array(size),stack=new Int32Array(size);let top=0;
       const enqueue=index=>{if(seen[index])return;const p=index*4;if(pixels[p+3]===0){seen[index]=1;return;}const dr=pixels[p]-background[0],dg=pixels[p+1]-background[1],db=pixels[p+2]-background[2];if(Math.sqrt(dr*dr+dg*dg+db*db)<=outer){seen[index]=1;stack[top++]=index;}};
       for(let x=0;x<w;x++){enqueue(x);enqueue((h-1)*w+x);}for(let y=1;y<h-1;y++){enqueue(y*w);enqueue(y*w+w-1);}
@@ -87,7 +118,7 @@
     $('#downloadButton').disabled=false;$('#copyButton').disabled=false;
   }
 
-  function updateComparison(){const amount=Number($('#compareRange').value),divider=$('#compareDivider'),canvasRect=canvas.getBoundingClientRect(),stackRect=canvasStack.getBoundingClientRect();canvas.style.clipPath=`inset(0 ${100-amount}% 0 0)`;divider.style.left=`${canvasRect.left-stackRect.left+canvasRect.width*amount/100}px`;divider.style.top=`${canvasRect.top-stackRect.top}px`;divider.style.height=`${canvasRect.height}px`;divider.style.bottom='auto';}
+  function updateComparison(){const amount=Number($('#compareRange').value),divider=$('#compareDivider'),canvasRect=canvas.getBoundingClientRect(),stackRect=canvasStack.getBoundingClientRect();canvas.style.clipPath=`inset(0 0 0 ${100-amount}%)`;divider.style.left=`${canvasRect.left-stackRect.left+canvasRect.width*amount/100}px`;divider.style.top=`${canvasRect.top-stackRect.top+canvasRect.height/2}px`;}
   function refreshOutlineColors(){const count=Number($('#outlineCount').value),container=$('#outlineColors'),old=Array.from(container.querySelectorAll('input')).map(input=>input.value);$('#outlineCountValue').value=count;container.replaceChildren();for(let i=0;i<count;i++){const label=document.createElement('label');label.className='outline-color';label.innerHTML=`<span>Outline ${i+1}</span>`;const color=document.createElement('input');color.type='color';color.id=`outlineColor${i}`;color.value=old[i]||'#ffffff';color.disabled=!sourceImage;color.addEventListener('input',updateOutput);label.append(color);container.append(label);}}
   function refreshColorRules(){const container=$('#colorRules');container.replaceChildren();if(!colorRules.length){const p=document.createElement('p');p.className='empty-rules';p.textContent='No colors selected yet.';container.append(p);return;}colorRules.forEach((rule,index)=>{const row=document.createElement('div');row.className='color-rule';const original=document.createElement('span');original.className='rule-chip';original.style.backgroundColor=`rgb(${rule.from.join(',')})`;const arrow=document.createElement('span');arrow.className='rule-arrow';arrow.textContent='→';const target=document.createElement('input');target.type='color';target.value=rule.to;target.setAttribute('aria-label',`Replacement color ${index+1}`);target.addEventListener('input',()=>{rule.to=target.value;updateOutput();});const remove=document.createElement('button');remove.type='button';remove.className='icon-button';remove.textContent='×';remove.setAttribute('aria-label',`Remove color ${index+1}`);remove.addEventListener('click',()=>{colorRules.splice(index,1);refreshColorRules();updateOutput();});row.append(original,arrow,target,remove);container.append(row);});}
 
@@ -142,10 +173,16 @@
   document.addEventListener('paste',event=>{const item=Array.from(event.clipboardData?.items||[]).find(entry=>entry.kind==='file'&&/^image\/(png|jpeg|webp)$/.test(entry.type));if(item){const file=item.getAsFile();if(file){event.preventDefault();loadFile(file);}}});
   dropZone.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();input.click();}});
   for(const name of ['dragenter','dragover'])dropZone.addEventListener(name,event=>{event.preventDefault();dropZone.classList.add('drag-over');});for(const name of ['dragleave','drop'])dropZone.addEventListener(name,event=>{event.preventDefault();dropZone.classList.remove('drag-over');});dropZone.addEventListener('drop',event=>loadFile(event.dataTransfer.files[0]));
-  $('#tolerance').addEventListener('input',()=>{$('#toleranceValue').value=$('#tolerance').value;scheduleRender();});$('#compareRange').addEventListener('input',updateComparison);window.addEventListener('resize',()=>{if(sourceImage)updateComparison();});
+  let draggingCompare=false;
+  const setCompareFromPointer=event=>{const rect=canvas.getBoundingClientRect();if(!rect.width)return;$('#compareRange').value=Math.round(Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width))*100);updateComparison();};
+  $('#compareDivider').addEventListener('pointerdown',event=>{draggingCompare=true;event.preventDefault();$('#compareDivider').setPointerCapture(event.pointerId);setCompareFromPointer(event);});
+  $('#compareDivider').addEventListener('pointermove',event=>{if(draggingCompare)setCompareFromPointer(event);});
+  $('#compareDivider').addEventListener('pointerup',()=>{draggingCompare=false;});
+  $('#compareRange').addEventListener('input',updateComparison);window.addEventListener('resize',()=>{if(sourceImage)updateComparison();});
+  $('#tolerance').addEventListener('input',()=>{$('#toleranceValue').value=$('#tolerance').value;scheduleRender();});
   $('#sampleButton').addEventListener('click',()=>{picking=true;$('#pickOverlay').textContent='Click a background color to sample it';$('#pickOverlay').hidden=false;$('#sampleButton').textContent='Cancel';});
   $('#addColorButton').addEventListener('click',()=>{picking=true;$('#pickOverlay').textContent='Click the color you want to replace';$('#pickOverlay').hidden=false;});
-  canvas.addEventListener('click',event=>{if(!picking)return;const rect=canvas.getBoundingClientRect(),x=Math.max(0,Math.min(canvas.width-1,Math.floor((event.clientX-rect.left)*canvas.width/rect.width))),y=Math.max(0,Math.min(canvas.height-1,Math.floor((event.clientY-rect.top)*canvas.height/rect.height)));if(currentTool==='recolor'){const p=(y*processedImage.width+x)*4,data=processedImage.data;if(data[p+3]<16)return;colorRules.push({from:[data[p],data[p+1],data[p+2]],to:'#ff6b6b'});refreshColorRules();}else{const data=ctx.getImageData(x,y,1,1).data;setBackground([data[0],data[1],data[2]]);}picking=false;$('#pickOverlay').hidden=true;$('#sampleButton').textContent='Pick color';if(currentTool==='recolor')updateOutput();});
+  canvasStack.addEventListener('click',event=>{if(!picking)return;const rect=canvas.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)return;const x=Math.max(0,Math.min(canvas.width-1,Math.floor((event.clientX-rect.left)*canvas.width/rect.width))),y=Math.max(0,Math.min(canvas.height-1,Math.floor((event.clientY-rect.top)*canvas.height/rect.height)));if(currentTool==='recolor'){const p=(y*processedImage.width+x)*4,data=processedImage.data;if(data[p+3]<16)return;colorRules.push({from:[data[p],data[p+1],data[p+2]],to:'#ff6b6b'});refreshColorRules();}else{const data=beforeCtx.getImageData(x,y,1,1).data;setBackground([data[0],data[1],data[2]]);}picking=false;$('#pickOverlay').hidden=true;$('#sampleButton').textContent='Pick color';if(currentTool==='recolor')updateOutput();});
   $('#pickOverlay').addEventListener('click',()=>{picking=false;$('#pickOverlay').hidden=true;$('#sampleButton').textContent='Pick color';});
   $('#borderWidth').addEventListener('input',()=>{$('#borderWidthValue').value=`${$('#borderWidth').value} px`;refreshOutlineColors();updateOutput();});$('#outlineCount').addEventListener('input',()=>{refreshOutlineColors();updateOutput();});$('#colorSensitivity').addEventListener('input',updateOutput);
   $('#cropRatio').addEventListener('change',updateCropRatio);$('#cropRatioW').addEventListener('input',()=>{if($('#cropRatio').value==='custom')updateCropRatio();});$('#cropRatioH').addEventListener('input',()=>{if($('#cropRatio').value==='custom')updateCropRatio();});
