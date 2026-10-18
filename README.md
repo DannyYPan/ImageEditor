@@ -8,12 +8,13 @@ Use the menu to switch between background removal, shape-following borders, and
 color replacement. Borders can have one to five colored outlines with a
 custom line weight. In the color tool, sample multiple source colors, choose a
 replacement for each, and adjust sensitivity to include more nearby shades.
-Paste an image with Ctrl+V, or use the picker/drop area. The before/after
-slider compares your original with the edited result. Switching tools clears
+Paste an image with Ctrl+V, or use the picker/drop area. The Before/After
+toggle crossfades between your original and edited result. Switching tools clears
 the current image, so load it again in the tool you want to use.
 
 The crop tool supports common aspect ratios and a custom ratio. Drag the crop
 frame to choose the part of the photo to keep, and drag its corner to resize.
+For free crop, enter exact width and height values in the crop controls.
 Export the result as PNG, JPG, WebP, SVG, or PDF. In the format converter,
 loading a PDF converts every page into a separate image in a ZIP archive. PDF.js
 is loaded from a CDN and needs an internet connection.
@@ -29,8 +30,10 @@ can struggle with busy backgrounds, shadows, or hair. Images over 16 megapixels
 are not processed to avoid excessive browser memory use.
 
 Branding is set in the project code and assets, not through an editor control.
-Change the title and logo markup in `index.html`, and replace or update
-`assets/favicon.svg` to change the favicon for everyone using the project.
+The header logo, wordmark, and favicon are `assets/logo.png`,
+`assets/title.png`, and `assets/favicon.png`. Replace those PNGs to change the
+site branding for everyone using the project; the page title and image markup
+are in `index.html`.
 
 The interface palette uses navy `#0e103d` with pale pink `#f2d7ee` highlights
 and text.

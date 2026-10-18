@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0e103d">
   <meta name="description" content="Edit, crop, compare, and convert images in your browser with Keystone.">
   <title>Keystone — Background remover</title>
-  <link rel="icon" id="faviconLink" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#" aria-label="Keystone home"><span class="brand-mark" aria-hidden="true">k</span><img id="brandLogoImage" alt="" hidden><span id="brandTitle">Keystone</span><span class="brand-dot">.</span></a>
+    <a class="brand" href="#" aria-label="Keystone home"><img class="brand-logo" src="assets/logo.png" alt=""><img class="brand-title-image" src="assets/title.png" alt="Keystone"></a>
     <details class="tools-menu"><summary>☰ <span>Menu</span></summary><div class="menu-options"><button type="button" data-tool="remove">Background remover</button><button type="button" data-tool="border">Add a border</button><button type="button" data-tool="recolor">Change colors</button><button type="button" data-tool="crop">Crop image</button><button type="button" data-tool="convert">Format converter</button></div></details>
     <span class="privacy"><span class="privacy-dot"></span>Private by design · files stay on your device</span>
   </header>
@@ -80,6 +80,7 @@
           <label class="field-label" for="cropRatio">Aspect ratio</label>
           <select id="cropRatio" class="tool-select" disabled><option value="free">Free crop</option><option value="1:1">1:1 · Square</option><option value="16:9">16:9 · Widescreen</option><option value="4:3">4:3 · Standard</option><option value="3:2">3:2 · Photo</option><option value="9:16">9:16 · Portrait</option><option value="custom">Custom ratio</option></select>
           <div class="crop-custom" id="cropCustom" hidden><label>Ratio width<input id="cropRatioW" type="number" min="1" value="1"></label><span>:</span><label>Ratio height<input id="cropRatioH" type="number" min="1" value="1"></label></div>
+          <div class="crop-fields crop-dimensions"><label>Width (px)<input id="cropWidthInput" type="number" min="1" disabled></label><label>Height (px)<input id="cropHeightInput" type="number" min="1" disabled></label></div>
           <div class="crop-fields" hidden><input id="cropWidthPx" type="hidden"><input id="cropHeightPx" type="hidden"><input id="cropLeftPx" type="hidden"><input id="cropTopPx" type="hidden"></div>
           <p class="crop-readout" id="cropSizeReadout">Drag the frame over the part of the image to preserve. Drag its corner to resize.</p>
         </div>
@@ -97,10 +98,10 @@
         <div class="preview-top"><div class="preview-label"><span class="live-dot"></span><span id="previewStatus">READY WHEN YOU ARE</span></div><div class="preview-dimensions" id="previewDimensions"></div></div>
         <div class="canvas-wrap" id="canvasWrap">
           <div class="empty-state" id="emptyState"><div class="empty-art" aria-hidden="true"><div class="art-back"></div><div class="art-photo"><span class="art-sun"></span><span class="art-hill hill-one"></span><span class="art-hill hill-two"></span><span class="art-frame"></span></div><span class="sparkle sparkle-one">✳</span><span class="sparkle sparkle-two">✳</span></div><h2>Your canvas is clear.</h2><p>Add an image and we’ll get to work.</p><span class="empty-caption">MADE FOR THE THINGS YOU MAKE</span></div>
-          <div id="canvasStack" class="canvas-stack" hidden><canvas id="beforeCanvas" aria-label="Original image"></canvas><canvas id="previewCanvas" aria-label="Edited image"></canvas><div id="cropFrame" class="crop-frame" hidden><span class="crop-frame-hint">Move crop area</span><button class="crop-resize" type="button" aria-label="Resize crop area"></button></div><span id="compareDivider" class="compare-divider" aria-hidden="true"><span>↔</span></span></div>
+          <div id="canvasStack" class="canvas-stack" hidden><canvas id="beforeCanvas" aria-label="Original image"></canvas><canvas id="previewCanvas" aria-label="Edited image"></canvas><div id="cropFrame" class="crop-frame" hidden><span class="crop-frame-hint">Move crop area</span><button class="crop-resize" type="button" aria-label="Resize crop area"></button></div></div>
           <button id="pickOverlay" class="pick-overlay" type="button" hidden>Click the background color to sample it</button>
         </div>
-        <div class="preview-bottom"><span class="checker-key"><i></i>Transparent areas</span><div class="compare-controls" id="compareControls" hidden><span>Before</span><input id="compareRange" type="range" min="0" max="100" value="0" aria-label="Move right to reveal the original image"><span>After</span></div><span id="canvasHint">Your image never leaves this browser.</span></div>
+        <div class="preview-bottom"><span class="checker-key"><i></i>Transparent areas</span><div class="compare-controls" id="compareControls" hidden><span>Compare</span><div class="comparison-toggle" id="comparisonToggle" data-state="after" role="group" aria-label="Choose before or after image"><span class="comparison-thumb" aria-hidden="true"></span><button type="button" data-comparison="before" aria-pressed="false">Before</button><button type="button" data-comparison="after" aria-pressed="true">After</button></div></div><span id="canvasHint">Your image never leaves this browser.</span></div>
       </section>
     </section>
     <footer class="page-footer"><span>Good things look better with a little breathing room.</span><span>MADE WITH CARE <b>✳</b></span></footer>
