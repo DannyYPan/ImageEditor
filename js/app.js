@@ -4,12 +4,12 @@
   const ctx=canvas.getContext('2d',{willReadFrequently:true}),beforeCtx=beforeCanvas.getContext('2d');
   const panels={remove:$('#removeControls'),border:$('#borderControls'),recolor:$('#recolorControls'),crop:$('#cropControls'),resize:$('#resizeControls'),convert:$('#convertControls')};
   const colorRules=[];
-  let sourceImage=null,sourcePixels=null,beforeKey='',sourceName='image',sourceUrl='',currentTool='remove',background=[255,255,255],picking=false,renderTimer=0,generation=0,processedImage=null,pdfPages=null,backgroundRemovalFound=true,comparisonState='after',resizeRatio=1,previewZoom=1,zoomPanX=0,zoomPanY=0;
+  let sourceImage=null,sourcePixels=null,beforeKey='',sourceName='image',sourceUrl='',pdfFileName='',pdfPageIndex=0,pdfPageRequest=0,currentTool='remove',background=[255,255,255],picking=false,renderTimer=0,generation=0,processedImage=null,pdfPages=null,backgroundRemovalFound=true,comparisonState='after',resizeRatio=1,previewZoom=1,zoomPanX=0,zoomPanY=0;
 
   function clearCurrentImage(){
-    clearTimeout(renderTimer);if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl='';sourceImage=null;sourcePixels=null;beforeKey='';processedImage=null;pdfPages=null;colorRules.splice(0);
+    clearTimeout(renderTimer);if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl='';sourceImage=null;sourcePixels=null;beforeKey='';processedImage=null;pdfPages=null;pdfFileName='';pdfPageIndex=0;pdfPageRequest++;colorRules.splice(0);
     canvas.width=canvas.height=beforeCanvas.width=beforeCanvas.height=0;canvasStack.hidden=true;$('#emptyState').hidden=false;$('#fileInfo').hidden=true;
-    $('#previewStatus').textContent='READY WHEN YOU ARE';$('#previewDimensions').textContent='';$('#compareControls').hidden=true;
+    $('#previewStatus').textContent='READY WHEN YOU ARE';$('#previewDimensions').textContent='';$('#compareControls').hidden=true;$('#pdfPageControls').hidden=true;$('#pdfPageSlider').disabled=true;
     $('#zoomControls').hidden=true;setZoom(1);
     $('#downloadButton').disabled=true;$('#copyButton').disabled=true;$('#tolerance').disabled=true;$('#sampleButton').disabled=true;
     $('#borderWidth').disabled=true;$('#outlineCount').disabled=true;$('#addColorButton').disabled=true;$('#colorSensitivity').disabled=true;$('#keepGradients').disabled=true;
@@ -116,7 +116,7 @@
     const finalData=workCtx.getImageData(sx,sy,sw,sh);canvas.width=sw;canvas.height=sh;ctx.putImageData(finalData,0,0);
     const beforeW=currentTool==='crop'?w:sw,beforeH=currentTool==='crop'?h:sh,nextBeforeKey=`${sourceImage.src}|${currentTool==='crop'?'crop':border?`border-${padding}`:resize?`resize-${sw}x${sh}`:'original'}|${beforeW}x${beforeH}`;
     if(beforeKey!==nextBeforeKey){beforeCanvas.width=beforeW;beforeCanvas.height=beforeH;beforeCtx.clearRect(0,0,beforeW,beforeH);if(currentTool==='crop')beforeCtx.drawImage(sourceImage,0,0,w,h);else if(border)beforeCtx.drawImage(sourceImage,padding,padding,w,h);else beforeCtx.drawImage(sourceImage,0,0,sw,sh);beforeKey=nextBeforeKey;}
-    canvasStack.hidden=false;$('#zoomControls').hidden=false;canvasStack.dataset.crop=String(currentTool==='crop');$('#cropFrame').hidden=currentTool!=='crop';$('#emptyState').hidden=true;$('#compareControls').hidden=currentTool==='crop';updateComparison();if(currentTool==='crop')updateCropFrame();
+    canvasStack.hidden=false;$('#zoomControls').hidden=false;canvasStack.dataset.crop=String(currentTool==='crop');$('#cropFrame').hidden=currentTool!=='crop';$('#emptyState').hidden=true;$('#compareControls').hidden=currentTool==='crop'||currentTool==='convert';$('#pdfPageControls').hidden=!(pdfPages&&currentTool==='convert');updateComparison();if(currentTool==='crop')updateCropFrame();
     $('#previewDimensions').textContent=`${sw} × ${sh} px`;$('#previewStatus').textContent=pdfPages&&currentTool==='convert'?`${pdfPages.length} PDF PAGES READY · EXPORT AS ZIP`:currentTool==='remove'?(backgroundRemovalFound?'BACKGROUND REMOVED':'NO BACKGROUND MATCH · PICK A COLOR OR INCREASE TOLERANCE'):({border:'BORDER ADDED',recolor:colorRules.length?'COLORS CHANGED':'IMAGE READY',crop:'IMAGE CROPPED',resize:'IMAGE RESIZED',convert:'IMAGE READY'})[currentTool];
     $('#downloadButton').disabled=false;$('#copyButton').disabled=false;
   }
@@ -136,22 +136,23 @@
     return allPages?pages:pages[0].dataUrl;
   }
 
-  function loadImageUrl(url,name,blobUrl=''){
+  function loadPdfPage(index){if(!pdfPages||index<0||index>=pdfPages.length)return;pdfPageIndex=index;const token=++pdfPageRequest;$('#pdfPageSlider').value=index+1;$('#pdfPageValue').textContent=`${index+1} / ${pdfPages.length}`;const url=URL.createObjectURL(pdfPages[index].blob);loadImageUrl(url,pdfFileName,url,token);}
+  function loadImageUrl(url,name,blobUrl='',pageRequest=0){
     const image=new Image();image.onload=()=>{
-      if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl=blobUrl;sourceImage=image;setZoom(1);const pixelCanvas=document.createElement('canvas');pixelCanvas.width=image.naturalWidth;pixelCanvas.height=image.naturalHeight;const pixelCtx=pixelCanvas.getContext('2d',{willReadFrequently:true});pixelCtx.drawImage(image,0,0);sourcePixels=pixelCtx.getImageData(0,0,image.naturalWidth,image.naturalHeight);beforeKey='';sourceName=name.replace(/\.[^.]+$/,'')||'image';colorRules.splice(0);$('#fileInfo').hidden=false;$('#emptyState').hidden=true;canvasStack.hidden=false;
+      if(pageRequest&&pageRequest!==pdfPageRequest){if(blobUrl)URL.revokeObjectURL(blobUrl);return;}if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl=blobUrl;sourceImage=image;if(!pageRequest)setZoom(1);const pixelCanvas=document.createElement('canvas');pixelCanvas.width=image.naturalWidth;pixelCanvas.height=image.naturalHeight;const pixelCtx=pixelCanvas.getContext('2d',{willReadFrequently:true});pixelCtx.drawImage(image,0,0);sourcePixels=pixelCtx.getImageData(0,0,image.naturalWidth,image.naturalHeight);beforeKey='';sourceName=name.replace(/\.[^.]+$/,'')||'image';colorRules.splice(0);$('#fileInfo').hidden=false;$('#emptyState').hidden=true;canvasStack.hidden=false;
       $('#fileName').textContent=name;$('#fileDimensions').textContent=`${image.naturalWidth} × ${image.naturalHeight} px`;$('#fileThumb').style.backgroundImage=`url("${url}")`;
       $('#canvasHint').textContent=currentTool==='crop'?'Drag the crop frame to reposition it.':'Drag the comparison slider to see before and after.';$('#tolerance').disabled=false;$('#sampleButton').disabled=false;$('#borderWidth').disabled=false;$('#outlineCount').disabled=false;$('#addColorButton').disabled=false;$('#colorSensitivity').disabled=false;$('#keepGradients').disabled=false;
       $('#cropRatio').disabled=false;$('#smartCropButton').disabled=false;$('#resizeWidth').disabled=false;$('#resizeHeight').disabled=false;$('#lockResizeRatio').disabled=false;$('#smoothResize').disabled=false;resizeRatio=image.naturalWidth/image.naturalHeight;$('#resizeWidth').value=image.naturalWidth;$('#resizeHeight').value=image.naturalHeight;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx'].forEach(id=>$(id).disabled=false);
       $('#cropRatio').value='free';$('#cropCustom').hidden=true;setCropNumbers({w:Math.max(1,Math.round(image.naturalWidth*.8)),h:Math.max(1,Math.round(image.naturalHeight*.8)),x:Math.round(image.naturalWidth*.1),y:Math.round(image.naturalHeight*.1)});comparisonState='after';
       refreshOutlineColors();refreshColorRules();setBackground([255,255,255],'Sampled from the corner');scheduleRender();
     };
-    image.onerror=()=>{if(blobUrl)URL.revokeObjectURL(blobUrl);alert('This image could not be opened. Please try another file.');};image.src=url;
+    image.onerror=()=>{if(blobUrl)URL.revokeObjectURL(blobUrl);if(!pageRequest||pageRequest===pdfPageRequest)alert('This image could not be opened. Please try another file.');};image.src=url;
   }
   async function loadFile(file){
     if(!file)return;const isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name),isImage=/^image\/(jpeg|png|webp)$/.test(file.type)||/\.(jpe?g|png|webp)$/i.test(file.name);
     if(!isPdf&&!isImage){alert('Choose a JPG, PNG, WebP, or PDF file.');return;}if(file.size>25*1024*1024){alert('This file is larger than 25 MB. Please choose a smaller file.');return;}
-    if(isPdf){$('#previewStatus').textContent='CONVERTING PDF PAGES';try{if(currentTool==='convert'){pdfPages=await renderPdf(file,true);loadImageUrl(pdfPages[0].dataUrl,file.name);for(const option of $('#exportFormat').options)option.disabled=!['image/png','image/jpeg','image/webp'].includes(option.value);$('#exportFormat').value='image/png';}else{pdfPages=null;loadImageUrl(await renderPdf(file),file.name);}}catch(error){console.error(error);alert('This PDF could not be opened. Check your internet connection and try again.');$('#previewStatus').textContent='READY WHEN YOU ARE';}return;}
-    pdfPages=null;for(const option of $('#exportFormat').options)option.disabled=false;
+    if(isPdf){$('#previewStatus').textContent='CONVERTING PDF PAGES';try{if(currentTool==='convert'){pdfPages=await renderPdf(file,true);pdfFileName=file.name;pdfPageIndex=0;setZoom(1);$('#pdfPageSlider').min=1;$('#pdfPageSlider').max=pdfPages.length;$('#pdfPageSlider').disabled=false;$('#pdfPageValue').textContent=`1 / ${pdfPages.length}`;$('#pdfPageControls').hidden=false;loadPdfPage(0);for(const option of $('#exportFormat').options)option.disabled=!['image/png','image/jpeg','image/webp'].includes(option.value);$('#exportFormat').value='image/png';}else{pdfPages=null;pdfFileName='';$('#pdfPageControls').hidden=true;loadImageUrl(await renderPdf(file),file.name);}}catch(error){console.error(error);alert('This PDF could not be opened. Check your internet connection and try again.');$('#previewStatus').textContent='READY WHEN YOU ARE';}return;}
+    pdfPages=null;pdfFileName='';$('#pdfPageControls').hidden=true;for(const option of $('#exportFormat').options)option.disabled=false;
     const url=URL.createObjectURL(file),image=new Image();image.onload=()=>{if(image.naturalWidth*image.naturalHeight>16000000){URL.revokeObjectURL(url);alert('This image has too many pixels to process smoothly. Please use an image under 16 megapixels.');return;}loadImageUrl(url,file.name,url);};image.onerror=()=>{URL.revokeObjectURL(url);alert('This image could not be opened. Please try another file.');};image.src=url;
   }
 
@@ -211,6 +212,7 @@
   $('#cropWidthInput').addEventListener('input',updateTypedCrop);$('#cropHeightInput').addEventListener('input',updateTypedCrop);
   $('#resizeWidth').addEventListener('input',()=>updateResizeDimensions('width'));$('#resizeHeight').addEventListener('input',()=>updateResizeDimensions('height'));$('#lockResizeRatio').addEventListener('change',()=>{if(sourceImage&&$('#lockResizeRatio').checked)resizeRatio=Number($('#resizeWidth').value)/Number($('#resizeHeight').value);});$('#smoothResize').addEventListener('change',updateOutput);
   $('#zoomOut').addEventListener('click',()=>setZoom(previewZoom-.25));$('#zoomIn').addEventListener('click',()=>setZoom(previewZoom+.25));$('#zoomFit').addEventListener('click',()=>setZoom(1));
+  $('#pdfPageSlider').addEventListener('input',()=>{$('#pdfPageValue').textContent=`${$('#pdfPageSlider').value} / ${pdfPages?.length||1}`;});$('#pdfPageSlider').addEventListener('change',()=>loadPdfPage(Number($('#pdfPageSlider').value)-1));
   $('#clearButton').addEventListener('click',clearCurrentImage);$('#downloadButton').addEventListener('click',exportImage);
   $('#copyButton').addEventListener('click',async()=>{if(!navigator.clipboard||typeof ClipboardItem==='undefined'){alert('Copying images is unavailable in this browser.');return;}try{const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);$('#copyButton span').textContent='Copied!';setTimeout(()=>$('#copyButton span').textContent='Copy PNG',1500);}catch{alert('Clipboard access was blocked.');}});
 })();

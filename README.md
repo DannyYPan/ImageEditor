@@ -20,8 +20,9 @@ The resize tool accepts exact output dimensions, can lock the aspect ratio, and
 offers high-quality smoothing for resized images. Output is limited to 16
 megapixels to keep browser memory use manageable.
 Export the result as PNG, JPG, WebP, SVG, or PDF. In the format converter,
-loading a PDF converts every page into a separate image in a ZIP archive. PDF.js
-is loaded from a CDN and needs an internet connection.
+use the page slider to inspect each PDF page; exporting converts every page into
+a separate image in a ZIP archive. PDF.js is loaded from a CDN and needs an
+internet connection.
 
 Choose an image or drop it into the upload area. The remover samples the image
 corners to find a background color; use **Pick color** to sample another spot,
