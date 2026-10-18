@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0e103d">
-  <meta name="description" content="Edit, crop, compare, and convert images in your browser with Keystone.">
-  <title>Keystone — Background remover</title>
+  <meta name="description" content="Edit, crop, compare, and convert images in your browser with Lumina Canvas.">
+  <title>Lumina Canvas — Background remover</title>
   <link rel="icon" href="assets/favicon.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +20,7 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#" aria-label="Keystone home"><img class="brand-logo" src="assets/logo.png" alt=""><img class="brand-title-image" src="assets/title.png" alt="Keystone"></a>
+    <a class="brand" href="#" aria-label="Lumina Canvas home"><img class="brand-logo" src="assets/logo.png" alt=""><span class="brand-title-text">Lumina Canvas</span></a>
     <details class="tools-menu"><summary>☰ <span>Menu</span></summary><div class="menu-options"><button type="button" data-tool="remove">Background remover</button><button type="button" data-tool="border">Add a border</button><button type="button" data-tool="recolor">Change colors</button><button type="button" data-tool="crop">Crop image</button><button type="button" data-tool="convert">Format converter</button></div></details>
     <span class="privacy"><span class="privacy-dot"></span>Private by design · files stay on your device</span>
   </header>
@@ -59,7 +59,7 @@
           <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Add a border</h2><p>Trace the visible shape</p></div></div>
           <p class="tool-description">The outline follows visible and translucent pixels, including transparent PNGs. It expands outward from your artwork.</p>
           <label class="field-label" for="borderWidth">Line weight <output id="borderWidthValue">8 px</output></label>
-          <input id="borderWidth" class="full-range" type="range" min="1" max="40" value="8" disabled>
+          <input id="borderWidth" class="full-range" type="range" min="1" max="100" value="8" disabled>
           <label class="field-label outline-count-label" for="outlineCount">Number of outlines <output id="outlineCountValue">1</output></label>
           <input id="outlineCount" class="full-range" type="range" min="1" max="5" value="1" disabled>
           <div id="outlineColors" class="outline-colors"></div>
@@ -69,11 +69,12 @@
           <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Change colors</h2><p>Replace several colors at once</p></div></div>
           <p class="tool-description">Pick a color in the preview, then choose its replacement. Add as many color swaps as you need.</p>
           <button id="addColorButton" class="sample-button add-color-button" type="button" disabled>＋ Pick a color to replace</button>
+          <label class="gradient-switch"><input id="keepGradients" type="checkbox" disabled><span class="switch-track" aria-hidden="true"></span><span>Keep gradients</span></label>
           <label class="field-label sensitivity-label" for="colorSensitivity">Sensitivity <output id="colorSensitivityValue">35</output></label>
           <input id="colorSensitivity" class="full-range" type="range" min="5" max="150" value="35" disabled>
           <div class="range-ends recolor-ends"><span>Similar colors only</span><span>Include more shades</span></div>
           <div id="colorRules" class="color-rules"><p class="empty-rules">No colors selected yet.</p></div>
-          <p class="tool-description small">Higher sensitivity also changes pixels that are close to the sampled color.</p>
+          <p class="tool-description small">Higher sensitivity also changes nearby shades. Keep gradients matches by hue and saturation, then preserves each pixel’s original lightness.</p>
         </div>
         <div id="cropControls" class="tool-controls" hidden>
           <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Crop image</h2><p>Move and resize the frame to choose what to keep</p></div></div>

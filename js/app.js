@@ -11,7 +11,7 @@
     canvas.width=canvas.height=beforeCanvas.width=beforeCanvas.height=0;canvasStack.hidden=true;$('#emptyState').hidden=false;$('#fileInfo').hidden=true;
     $('#previewStatus').textContent='READY WHEN YOU ARE';$('#previewDimensions').textContent='';$('#compareControls').hidden=true;
     $('#downloadButton').disabled=true;$('#copyButton').disabled=true;$('#tolerance').disabled=true;$('#sampleButton').disabled=true;
-    $('#borderWidth').disabled=true;$('#outlineCount').disabled=true;$('#addColorButton').disabled=true;$('#colorSensitivity').disabled=true;
+    $('#borderWidth').disabled=true;$('#outlineCount').disabled=true;$('#addColorButton').disabled=true;$('#colorSensitivity').disabled=true;$('#keepGradients').disabled=true;
     $('#cropRatio').disabled=true;$('#smartCropButton').disabled=true;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx','#cropWidthInput','#cropHeightInput'].forEach(id=>$(id).disabled=true);
     $('#canvasHint').textContent='Your image never leaves this browser.';$('#pickOverlay').hidden=true;picking=false;$('#sampleButton').textContent='Pick color';
     refreshColorRules();refreshOutlineColors();
@@ -48,6 +48,8 @@
   }
 
   function hexRgb(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
+  function rgbToHsl(rgb){const r=rgb[0]/255,g=rgb[1]/255,b=rgb[2]/255,max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min,l=(max+min)/2;let h=0,s=0;if(delta){s=delta/(1-Math.abs(2*l-1));if(max===r)h=60*(((g-b)/delta)%6);else if(max===g)h=60*((b-r)/delta+2);else h=60*((r-g)/delta+4);if(h<0)h+=360;}return[h,s,l];}
+  function hslToRgb(h,s,l){const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;let rgb;if(h<60)rgb=[c,x,0];else if(h<120)rgb=[x,c,0];else if(h<180)rgb=[0,c,x];else if(h<240)rgb=[0,x,c];else if(h<300)rgb=[x,0,c];else rgb=[c,0,x];return rgb.map(value=>Math.round((value+m)*255));}
   function outlineDistance(mask,w,h,alphaThreshold){
     // Chamfer distance with extra knight moves gives a much closer approximation
     // to a round, even outline than spreading alpha one pixel at a time.
@@ -82,8 +84,8 @@
     if(!processedImage)return;const w=processedImage.width,h=processedImage.height;
     const output=new ImageData(new Uint8ClampedArray(processedImage.data),w,h),pixels=output.data;
     if(currentTool==='recolor'){
-      const sensitivity=Number($('#colorSensitivity').value),rules=colorRules.map(rule=>({from:rule.from,to:hexRgb(rule.to)}));
-      for(let i=0;i<pixels.length;i+=4){if(!pixels[i+3])continue;let best=null,distanceLimit=sensitivity;for(const rule of rules){const dr=pixels[i]-rule.from[0],dg=pixels[i+1]-rule.from[1],db=pixels[i+2]-rule.from[2],d=Math.sqrt(dr*dr+dg*dg+db*db);if(d<=distanceLimit){distanceLimit=d;best=rule;}}if(best){pixels[i]=best.to[0];pixels[i+1]=best.to[1];pixels[i+2]=best.to[2];}}
+      const sensitivity=Number($('#colorSensitivity').value),keepGradients=$('#keepGradients').checked,rules=colorRules.map(rule=>({from:rule.from,to:hexRgb(rule.to),fromHsl:rgbToHsl(rule.from),toHsl:rgbToHsl(hexRgb(rule.to))}));
+      for(let i=0;i<pixels.length;i+=4){if(!pixels[i+3])continue;const pixelHsl=keepGradients?rgbToHsl([pixels[i],pixels[i+1],pixels[i+2]]):null;let best=null,distanceLimit=sensitivity;for(const rule of rules){let d;if(keepGradients){const hueDelta=Math.abs(pixelHsl[0]-rule.fromHsl[0]),hueDistance=Math.min(hueDelta,360-hueDelta)*2,saturationDistance=Math.abs(pixelHsl[1]-rule.fromHsl[1])*255;d=Math.hypot(hueDistance,saturationDistance);}else{const dr=pixels[i]-rule.from[0],dg=pixels[i+1]-rule.from[1],db=pixels[i+2]-rule.from[2];d=Math.sqrt(dr*dr+dg*dg+db*db);}if(d<=distanceLimit){distanceLimit=d;best=rule;}}if(best){const rgb=keepGradients?hslToRgb(best.toHsl[0],best.toHsl[1],pixelHsl[2]):best.to;pixels[i]=rgb[0];pixels[i+1]=rgb[1];pixels[i+2]=rgb[2];}}
     }
     const border=currentTool==='border',weight=Number($('#borderWidth').value),count=Number($('#outlineCount').value),padding=border?weight*count:0,outW=w+padding*2,outH=h+padding*2;
     const work=document.createElement('canvas');work.width=outW;work.height=outH;const workCtx=work.getContext('2d',{willReadFrequently:true});
@@ -130,7 +132,7 @@
     const image=new Image();image.onload=()=>{
       if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl=blobUrl;sourceImage=image;const pixelCanvas=document.createElement('canvas');pixelCanvas.width=image.naturalWidth;pixelCanvas.height=image.naturalHeight;const pixelCtx=pixelCanvas.getContext('2d',{willReadFrequently:true});pixelCtx.drawImage(image,0,0);sourcePixels=pixelCtx.getImageData(0,0,image.naturalWidth,image.naturalHeight);beforeKey='';sourceName=name.replace(/\.[^.]+$/,'')||'image';colorRules.splice(0);$('#fileInfo').hidden=false;$('#emptyState').hidden=true;canvasStack.hidden=false;
       $('#fileName').textContent=name;$('#fileDimensions').textContent=`${image.naturalWidth} × ${image.naturalHeight} px`;$('#fileThumb').style.backgroundImage=`url("${url}")`;
-      $('#canvasHint').textContent=currentTool==='crop'?'Drag the crop frame to reposition it.':'Drag the comparison slider to see before and after.';$('#tolerance').disabled=false;$('#sampleButton').disabled=false;$('#borderWidth').disabled=false;$('#outlineCount').disabled=false;$('#addColorButton').disabled=false;$('#colorSensitivity').disabled=false;
+      $('#canvasHint').textContent=currentTool==='crop'?'Drag the crop frame to reposition it.':'Drag the comparison slider to see before and after.';$('#tolerance').disabled=false;$('#sampleButton').disabled=false;$('#borderWidth').disabled=false;$('#outlineCount').disabled=false;$('#addColorButton').disabled=false;$('#colorSensitivity').disabled=false;$('#keepGradients').disabled=false;
       $('#cropRatio').disabled=false;$('#smartCropButton').disabled=false;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx'].forEach(id=>$(id).disabled=false);
       $('#cropRatio').value='free';$('#cropCustom').hidden=true;setCropNumbers({w:Math.max(1,Math.round(image.naturalWidth*.8)),h:Math.max(1,Math.round(image.naturalHeight*.8)),x:Math.round(image.naturalWidth*.1),y:Math.round(image.naturalHeight*.1)});comparisonState='after';
       refreshOutlineColors();refreshColorRules();setBackground([255,255,255],'Sampled from the corner');scheduleRender();
@@ -170,7 +172,7 @@
     if(mime==='application/pdf')blob=makePdf();
     else if(mime==='image/svg+xml'){const data=canvas.toDataURL('image/png'),svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}"><image width="100%" height="100%" href="${data}"/></svg>`;blob=new Blob([svg],{type:mime});}
     else blob=await new Promise(resolve=>{if(mime==='image/jpeg'){const flat=document.createElement('canvas');flat.width=canvas.width;flat.height=canvas.height;const flatCtx=flat.getContext('2d');flatCtx.fillStyle='#fff';flatCtx.fillRect(0,0,flat.width,flat.height);flatCtx.drawImage(canvas,0,0);flat.toBlob(resolve,mime,.94);}else canvas.toBlob(resolve,mime,.94);});
-    if(!blob||((mime==='image/webp'||mime==='image/jpeg')&&blob.type!==mime)){alert('This format is not supported by your browser.');return;}const link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download=`${sourceName}-keystone.${ext}`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    if(!blob||((mime==='image/webp'||mime==='image/jpeg')&&blob.type!==mime)){alert('This format is not supported by your browser.');return;}const link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download=`${sourceName}-lumina-canvas.${ext}`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
   input.addEventListener('change',()=>{loadFile(input.files[0]);input.value='';});
@@ -192,7 +194,7 @@
   $('#addColorButton').addEventListener('click',()=>{picking=true;$('#pickOverlay').textContent='Click the color you want to replace';$('#pickOverlay').hidden=false;});
   canvasStack.addEventListener('click',event=>{if(!picking)return;const rect=canvas.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)return;const x=Math.max(0,Math.min(canvas.width-1,Math.floor((event.clientX-rect.left)*canvas.width/rect.width))),y=Math.max(0,Math.min(canvas.height-1,Math.floor((event.clientY-rect.top)*canvas.height/rect.height)));if(currentTool==='recolor'){const p=(y*processedImage.width+x)*4,data=processedImage.data;if(data[p+3]<16)return;colorRules.push({from:[data[p],data[p+1],data[p+2]],to:'#ff6b6b'});refreshColorRules();}else{const data=beforeCtx.getImageData(x,y,1,1).data;setBackground([data[0],data[1],data[2]]);}picking=false;$('#pickOverlay').hidden=true;$('#sampleButton').textContent='Pick color';if(currentTool==='recolor')updateOutput();});
   $('#pickOverlay').addEventListener('click',()=>{picking=false;$('#pickOverlay').hidden=true;$('#sampleButton').textContent='Pick color';});
-  $('#borderWidth').addEventListener('input',()=>{$('#borderWidthValue').value=`${$('#borderWidth').value} px`;refreshOutlineColors();updateOutput();});$('#outlineCount').addEventListener('input',()=>{refreshOutlineColors();updateOutput();});$('#colorSensitivity').addEventListener('input',updateOutput);
+  $('#borderWidth').addEventListener('input',()=>{$('#borderWidthValue').value=`${$('#borderWidth').value} px`;refreshOutlineColors();updateOutput();});$('#outlineCount').addEventListener('input',()=>{refreshOutlineColors();updateOutput();});$('#colorSensitivity').addEventListener('input',updateOutput);$('#keepGradients').addEventListener('change',updateOutput);
   $('#cropRatio').addEventListener('change',updateCropRatio);$('#cropRatioW').addEventListener('input',()=>{if($('#cropRatio').value==='custom')updateCropRatio();});$('#cropRatioH').addEventListener('input',()=>{if($('#cropRatio').value==='custom')updateCropRatio();});
   $('#smartCropButton').addEventListener('click',smartCenterCrop);
   $('#cropWidthInput').addEventListener('input',updateTypedCrop);$('#cropHeightInput').addEventListener('input',updateTypedCrop);

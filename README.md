@@ -1,7 +1,7 @@
-# ImageEditor
+# Lumina Canvas
 Image Background Remover
 
-Keystone is a browser based image editor and converter. Open `index.html` in a
+Lumina Canvas is a browser based image editor and converter. Open `index.html` in a
 modern browser to use it. Effects apply automatically after an image loads.
 
 Use the menu to switch between background removal, shape-following borders, and
@@ -30,10 +30,9 @@ can struggle with busy backgrounds, shadows, or hair. Images over 16 megapixels
 are not processed to avoid excessive browser memory use.
 
 Branding is set in the project code and assets, not through an editor control.
-The header logo, wordmark, and favicon are `assets/logo.png`,
-`assets/title.png`, and `assets/favicon.png`. Replace those PNGs to change the
-site branding for everyone using the project; the page title and image markup
-are in `index.html`.
+The header logo and favicon are `assets/logo.png` and `assets/favicon.png`.
+Replace those PNGs to change the site branding for everyone using the project;
+the Lumina Canvas wordmark and page title are in `index.html`.
 
 The interface palette uses navy `#0e103d` with pale pink `#f2d7ee` highlights
 and text.
