@@ -22,7 +22,6 @@
   <header class="topbar">
     <a class="brand" href="#" aria-label="Keystone home"><span class="brand-mark" aria-hidden="true">k</span><img id="brandLogoImage" alt="" hidden><span id="brandTitle">Keystone</span><span class="brand-dot">.</span></a>
     <details class="tools-menu"><summary>☰ <span>Menu</span></summary><div class="menu-options"><button type="button" data-tool="remove">Background remover</button><button type="button" data-tool="border">Add a border</button><button type="button" data-tool="recolor">Change colors</button><button type="button" data-tool="crop">Crop image</button><button type="button" data-tool="convert">Format converter</button></div></details>
-    <details class="brand-settings"><summary>Brand</summary><div class="brand-options"><label>Logo title<input id="brandTitleInput" type="text" maxlength="32" placeholder="Keystone"></label><label>Logo PNG<input id="logoUpload" type="file" accept="image/png"></label><label>Favicon PNG<input id="faviconUpload" type="file" accept="image/png"></label><button id="saveAssetsButton" type="button">Save PNGs to assets folder</button><small id="brandStatus">Brand settings are saved in this browser.</small></div></details>
     <span class="privacy"><span class="privacy-dot"></span>Private by design · files stay on your device</span>
   </header>
 
@@ -98,10 +97,10 @@
         <div class="preview-top"><div class="preview-label"><span class="live-dot"></span><span id="previewStatus">READY WHEN YOU ARE</span></div><div class="preview-dimensions" id="previewDimensions"></div></div>
         <div class="canvas-wrap" id="canvasWrap">
           <div class="empty-state" id="emptyState"><div class="empty-art" aria-hidden="true"><div class="art-back"></div><div class="art-photo"><span class="art-sun"></span><span class="art-hill hill-one"></span><span class="art-hill hill-two"></span><span class="art-frame"></span></div><span class="sparkle sparkle-one">✳</span><span class="sparkle sparkle-two">✳</span></div><h2>Your canvas is clear.</h2><p>Add an image and we’ll get to work.</p><span class="empty-caption">MADE FOR THE THINGS YOU MAKE</span></div>
-          <div id="canvasStack" class="canvas-stack" hidden><canvas id="beforeCanvas" aria-label="Original image"></canvas><canvas id="previewCanvas" aria-label="Edited image"></canvas><span id="compareDivider" class="compare-divider" aria-hidden="true">↔</span></div>
+          <div id="canvasStack" class="canvas-stack" hidden><canvas id="beforeCanvas" aria-label="Original image"></canvas><canvas id="previewCanvas" aria-label="Edited image"></canvas><span id="compareDivider" class="compare-divider" aria-hidden="true"><span>↔</span></span></div>
           <button id="pickOverlay" class="pick-overlay" type="button" hidden>Click the background color to sample it</button>
         </div>
-        <div class="preview-bottom"><span class="checker-key"><i></i>Transparent areas</span><div class="compare-controls" id="compareControls" hidden><span>Before</span><input id="compareRange" type="range" min="0" max="100" value="0" aria-label="Drag from before on the left to after on the right"><span>After</span></div><span id="canvasHint">Your image never leaves this browser.</span></div>
+        <div class="preview-bottom"><span class="checker-key"><i></i>Transparent areas</span><div class="compare-controls" id="compareControls" hidden><span>Before</span><input id="compareRange" type="range" min="0" max="100" value="0" aria-label="Move right to reveal the original image"><span>After</span></div><span id="canvasHint">Your image never leaves this browser.</span></div>
       </section>
     </section>
     <footer class="page-footer"><span>Good things look better with a little breathing room.</span><span>MADE WITH CARE <b>✳</b></span></footer>

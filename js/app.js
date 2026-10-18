@@ -6,37 +6,6 @@
   const colorRules=[];
   let sourceImage=null,sourceName='image',sourceUrl='',currentTool='remove',background=[255,255,255],picking=false,renderTimer=0,generation=0,processedImage=null;
 
-  function initBranding(){
-    const titleInput=$('#brandTitleInput'),titleNode=$('#brandTitle'),logo=$('#brandLogoImage'),favicon=$('#faviconLink'),status=$('#brandStatus');
-    let logoFile=null,faviconFile=null;
-    try{
-      const title=localStorage.getItem('keystoneBrandTitle');if(title){titleNode.textContent=title;titleInput.value=title;document.title=`${title} — Image editor`;}
-      const logoData=localStorage.getItem('keystoneBrandLogo');if(logoData){logo.src=logoData;logo.hidden=false;$('.brand-mark').hidden=true;}
-      const faviconData=localStorage.getItem('keystoneBrandFavicon');if(faviconData)favicon.href=faviconData;
-    }catch{}
-    titleInput.addEventListener('input',()=>{const title=titleInput.value.trim()||'Keystone';titleNode.textContent=title;document.title=`${title} — Image editor`;try{localStorage.setItem('keystoneBrandTitle',title);}catch{status.textContent='Could not save the title in browser storage.';}});
-    const readPng=(file,kind)=>{
-      if(!file)return;if(file.type!=='image/png'){status.textContent='Please choose a PNG image.';return;}
-      if(file.size>2*1024*1024){status.textContent='Choose a PNG smaller than 2 MB.';return;}
-      const reader=new FileReader();reader.onload=()=>{try{
-        if(kind==='logo'){logoFile=file;localStorage.setItem('keystoneBrandLogo',reader.result);logo.src=reader.result;logo.hidden=false;$('.brand-mark').hidden=true;}
-        else{faviconFile=file;localStorage.setItem('keystoneBrandFavicon',reader.result);favicon.href=reader.result;}
-        status.textContent=`${kind==='logo'?'Logo':'Favicon'} updated. Save it to assets/ to use it in the project files.`;
-      }catch{status.textContent='Image is ready, but browser storage is full. Save it to assets/.';}};reader.readAsDataURL(file);
-    };
-    $('#logoUpload').addEventListener('change',event=>readPng(event.target.files[0],'logo'));
-    $('#faviconUpload').addEventListener('change',event=>readPng(event.target.files[0],'favicon'));
-    $('#saveAssetsButton').addEventListener('click',async()=>{
-      if(!window.showDirectoryPicker){status.textContent='Folder saving needs a supported desktop browser. Your branding remains saved in this browser.';return;}
-      if(!logoFile&&!faviconFile){status.textContent='Choose a logo PNG or favicon PNG first.';return;}
-      try{const root=await window.showDirectoryPicker({mode:'readwrite'});const assets=await root.getDirectoryHandle('assets',{create:true});
-        for(const [file,name] of [[logoFile,'logo.png'],[faviconFile,'favicon.png']])if(file){const handle=await assets.getFileHandle(name,{create:true}),writer=await handle.createWritable();await writer.write(file);await writer.close();}
-        status.textContent='PNG file(s) saved in the selected folder’s assets/ directory.';
-      }catch(error){if(error.name!=='AbortError')status.textContent='Could not write these files. Choose the project folder and allow access.';}
-    });
-  }
-  initBranding();
-
   function clearCurrentImage(){
     clearTimeout(renderTimer);if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl='';sourceImage=null;processedImage=null;colorRules.splice(0);
     canvas.width=canvas.height=beforeCanvas.width=beforeCanvas.height=0;canvasStack.hidden=true;$('#emptyState').hidden=false;$('#fileInfo').hidden=true;
@@ -118,7 +87,7 @@
     $('#downloadButton').disabled=false;$('#copyButton').disabled=false;
   }
 
-  function updateComparison(){const amount=Number($('#compareRange').value),divider=$('#compareDivider'),canvasRect=canvas.getBoundingClientRect(),stackRect=canvasStack.getBoundingClientRect();/* Keep the edited image to the right of the handle. */canvas.style.clipPath=`inset(0 0 0 ${100-amount}%)`;divider.style.left=`${canvasRect.left-stackRect.left+canvasRect.width*amount/100}px`;divider.style.top=`${canvasRect.top-stackRect.top+canvasRect.height/2}px`;}
+  function updateComparison(){const amount=Number($('#compareRange').value),divider=$('#compareDivider'),canvasRect=canvas.getBoundingClientRect(),stackRect=canvasStack.getBoundingClientRect();/* The edited image is visible at the left end; dragging right reveals the original from the left. */canvas.style.clipPath=`inset(0 0 0 ${amount}%)`;divider.style.left=`${canvasRect.left-stackRect.left+canvasRect.width*amount/100}px`;divider.style.top=`${canvasRect.top-stackRect.top}px`;divider.style.height=`${canvasRect.height}px`;divider.style.bottom='auto';}
   function refreshOutlineColors(){const count=Number($('#outlineCount').value),container=$('#outlineColors'),old=Array.from(container.querySelectorAll('input')).map(input=>input.value);$('#outlineCountValue').value=count;container.replaceChildren();for(let i=0;i<count;i++){const label=document.createElement('label');label.className='outline-color';label.innerHTML=`<span>Outline ${i+1}</span>`;const color=document.createElement('input');color.type='color';color.id=`outlineColor${i}`;color.value=old[i]||'#ffffff';color.disabled=!sourceImage;color.addEventListener('input',updateOutput);label.append(color);container.append(label);}}
   function refreshColorRules(){const container=$('#colorRules');container.replaceChildren();if(!colorRules.length){const p=document.createElement('p');p.className='empty-rules';p.textContent='No colors selected yet.';container.append(p);return;}colorRules.forEach((rule,index)=>{const row=document.createElement('div');row.className='color-rule';const original=document.createElement('span');original.className='rule-chip';original.style.backgroundColor=`rgb(${rule.from.join(',')})`;const arrow=document.createElement('span');arrow.className='rule-arrow';arrow.textContent='→';const target=document.createElement('input');target.type='color';target.value=rule.to;target.setAttribute('aria-label',`Replacement color ${index+1}`);target.addEventListener('input',()=>{rule.to=target.value;updateOutput();});const remove=document.createElement('button');remove.type='button';remove.className='icon-button';remove.textContent='×';remove.setAttribute('aria-label',`Remove color ${index+1}`);remove.addEventListener('click',()=>{colorRules.splice(index,1);refreshColorRules();updateOutput();});row.append(original,arrow,target,remove);container.append(row);});}
 
@@ -177,7 +146,7 @@
   const setCompareFromPointer=event=>{const rect=canvas.getBoundingClientRect();if(!rect.width)return;$('#compareRange').value=Math.round(Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width))*100);updateComparison();};
   $('#compareDivider').addEventListener('pointerdown',event=>{draggingCompare=true;event.preventDefault();$('#compareDivider').setPointerCapture(event.pointerId);setCompareFromPointer(event);});
   $('#compareDivider').addEventListener('pointermove',event=>{if(draggingCompare)setCompareFromPointer(event);});
-  $('#compareDivider').addEventListener('pointerup',()=>{draggingCompare=false;});
+  $('#compareDivider').addEventListener('pointerup',()=>{draggingCompare=false;});$('#compareDivider').addEventListener('pointercancel',()=>{draggingCompare=false;});
   $('#compareRange').addEventListener('input',updateComparison);window.addEventListener('resize',()=>{if(sourceImage)updateComparison();});
   $('#tolerance').addEventListener('input',()=>{$('#toleranceValue').value=$('#tolerance').value;scheduleRender();});
   $('#sampleButton').addEventListener('click',()=>{picking=true;$('#pickOverlay').textContent='Click a background color to sample it';$('#pickOverlay').hidden=false;$('#sampleButton').textContent='Cancel';});

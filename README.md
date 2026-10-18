@@ -27,13 +27,9 @@ best for solid or evenly colored backgrounds; it is not an AI cutout tool and
 can struggle with busy backgrounds, shadows, or hair. Images over 16 megapixels
 are not processed to avoid excessive browser memory use.
 
-Use **Brand** in the header to change the displayed title and upload PNGs for
-the logo and favicon. Those choices are saved in the current browser. To write
-the uploaded images into the project, choose **Save PNGs to assets folder** and
-select the project folder; the files are saved as `assets/logo.png` and
-`assets/favicon.png`. Folder writing is available in browsers that support the
-File System Access API. Replace `assets/favicon.svg` or point the page at your
-own files when changing the default project branding for every visitor.
+Branding is set in the project code and assets, not through an editor control.
+Change the title and logo markup in `index.html`, and replace or update
+`assets/favicon.svg` to change the favicon for everyone using the project.
 
 The interface palette uses navy `#0e103d` with pale pink `#f2d7ee` highlights
 and text.
