@@ -1,0 +1,2 @@
+.preview-tools{display:flex;align-items:center;gap:12px}.preview-button{border:1px solid var(--green);border-radius:5px;padding:7px 10px;background:var(--green);color:#fff;font:600 10px "DM Sans",sans-serif;cursor:pointer}.preview-button:hover:not(:disabled){background:var(--green-dark)}.preview-button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:650px){.preview-tools{gap:7px}.preview-button{padding:6px 7px;font-size:9px}}

@@ -18,8 +18,11 @@
   const borderEnabled = document.querySelector('#borderEnabled');
   const borderWidth = document.querySelector('#borderWidth');
   const outlineCount = document.querySelector('#outlineCount');
+  const previewButton = document.querySelector('#previewButton');
   const colorRules = [];
   let processedImage = null;
+  let previewed = false;
+  let backgroundRemovalEnabled = false;
   let currentTool = 'remove';
   let pickingReplacement = false;
   let sourceImage = null;
@@ -29,7 +32,22 @@
   let renderTimer = 0;
   let generation = 0;
 
+  function clearCurrentImage() {
+    clearTimeout(renderTimer);
+    if(sourceImage?.src?.startsWith('blob:'))URL.revokeObjectURL(sourceImage.src);
+    sourceImage=null;processedImage=null;previewed=false;backgroundRemovalEnabled=false;colorRules.splice(0);
+    canvas.width=canvas.height=0;canvas.hidden=true;emptyState.hidden=false;fileInfo.hidden=true;
+    previewStatus.textContent='READY WHEN YOU ARE';document.querySelector('#previewDimensions').textContent='';
+    document.querySelector('#canvasHint').textContent='Your image never leaves this browser.';
+    tolerance.disabled=true;sampleButton.disabled=true;downloadButton.disabled=true;copyButton.disabled=true;previewButton.disabled=true;
+    borderEnabled.checked=false;borderEnabled.disabled=true;borderWidth.disabled=true;outlineCount.disabled=true;
+    document.querySelector('#addColorButton').disabled=true;document.querySelector('#colorSensitivity').disabled=true;
+    sampleButton.textContent='Pick color';pickOverlay.hidden=true;picking=false;pickingReplacement=false;
+    refreshColorRules();refreshOutlineColors();
+  }
+
   function selectTool(tool) {
+    if(tool!==currentTool)clearCurrentImage();
     currentTool = tool;
     document.body.dataset.tool = tool;
     Object.entries(toolPanels).forEach(([name, panel]) => { panel.hidden = name !== tool; });
@@ -82,31 +100,33 @@
       background = initialBg.map(Math.round);
       sampleSwatch.style.backgroundColor = `rgb(${background.join(',')})`;
     }
-    const threshold = Number(tolerance.value);
-    const outer = threshold + 34;
-    const size = w*h;
-    const seen = new Uint8Array(size);
-    const stack = new Int32Array(size);
-    let top = 0;
-    const enqueue = index => {
-      if (seen[index]) return;
-      const p = index*4;
-      if (pixels[p+3] === 0) { seen[index]=1; return; }
-      const dr=pixels[p]-background[0], dg=pixels[p+1]-background[1], db=pixels[p+2]-background[2];
-      if (Math.sqrt(dr*dr+dg*dg+db*db) <= outer) { seen[index]=1; stack[top++]=index; }
-    };
-    for(let x=0;x<w;x++){enqueue(x);enqueue((h-1)*w+x);}
-    for(let y=1;y<h-1;y++){enqueue(y*w);enqueue(y*w+w-1);}
-    while(top){
-      const index=stack[--top], x=index%w, y=(index/w)|0, p=index*4;
-      const dr=pixels[p]-background[0], dg=pixels[p+1]-background[1], db=pixels[p+2]-background[2];
-      const distance=Math.sqrt(dr*dr+dg*dg+db*db);
-      const alpha=Math.max(0,Math.min(1,(distance-threshold)/(outer-threshold)));
-      pixels[p+3]=Math.round(pixels[p+3]*alpha);
-      if(x>0) enqueue(index-1);
-      if(x<w-1) enqueue(index+1);
-      if(y>0) enqueue(index-w);
-      if(y<h-1) enqueue(index+w);
+    if(backgroundRemovalEnabled){
+      const threshold = Number(tolerance.value);
+      const outer = threshold + 34;
+      const size = w*h;
+      const seen = new Uint8Array(size);
+      const stack = new Int32Array(size);
+      let top = 0;
+      const enqueue = index => {
+        if (seen[index]) return;
+        const p = index*4;
+        if (pixels[p+3] === 0) { seen[index]=1; return; }
+        const dr=pixels[p]-background[0], dg=pixels[p+1]-background[1], db=pixels[p+2]-background[2];
+        if (Math.sqrt(dr*dr+dg*dg+db*db) <= outer) { seen[index]=1; stack[top++]=index; }
+      };
+      for(let x=0;x<w;x++){enqueue(x);enqueue((h-1)*w+x);}
+      for(let y=1;y<h-1;y++){enqueue(y*w);enqueue(y*w+w-1);}
+      while(top){
+        const index=stack[--top], x=index%w, y=(index/w)|0, p=index*4;
+        const dr=pixels[p]-background[0], dg=pixels[p+1]-background[1], db=pixels[p+2]-background[2];
+        const distance=Math.sqrt(dr*dr+dg*dg+db*db);
+        const alpha=Math.max(0,Math.min(1,(distance-threshold)/(outer-threshold)));
+        pixels[p+3]=Math.round(pixels[p+3]*alpha);
+        if(x>0) enqueue(index-1);
+        if(x<w-1) enqueue(index+1);
+        if(y>0) enqueue(index-w);
+        if(y<h-1) enqueue(index+w);
+      }
     }
     if(currentGeneration !== generation) return;
     processedImage = imageData;
@@ -115,34 +135,33 @@
 
   function hexRgb(hex) { return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)]; }
 
-  function dilate(mask, width, height, radius) {
-    if (!radius) return mask;
-    const horizontal = new Uint8Array(mask.length);
-    const result = new Uint8Array(mask.length);
-    const deque = new Int32Array(Math.max(width,height));
-    const filterLine = (input, output, length, get, set) => {
-      let head=0,tail=0,added=-1;
-      for(let center=0;center<length;center++){
-        const end=Math.min(length-1,center+radius);
-        while(added<end){
-          added++;
-          while(tail>head && get(deque[tail-1])<=get(added))tail--;
-          deque[tail++]=added;
-        }
-        const start=center-radius;
-        while(tail>head && deque[head]<start)head++;
-        set(center,get(deque[head]));
-        if(head===tail){head=0;tail=0;added=center;}
-      }
-    };
-    for(let y=0;y<height;y++) filterLine(mask,horizontal,width,x=>mask[y*width+x],(x,v)=>horizontal[y*width+x]=v);
-    for(let x=0;x<width;x++) filterLine(horizontal,result,height,y=>horizontal[y*width+x],(y,v)=>result[y*width+x]=v);
-    return result;
+  function outlineDistance(mask, width, height) {
+    const distance=new Uint16Array(mask.length);distance.fill(65535);
+    const coverage=new Uint8Array(mask.length);
+    for(let i=0;i<mask.length;i++)if(mask[i]){distance[i]=0;coverage[i]=mask[i];}
+    const relax=(at,from,cost)=>{const next=distance[from]+cost;if(next<distance[at]){distance[at]=next;coverage[at]=coverage[from];}};
+    for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+      const i=y*width+x;
+      if(x>0)relax(i,i-1,3);if(y>0)relax(i,i-width,3);
+      if(x>0&&y>0)relax(i,i-width-1,4);if(x+1<width&&y>0)relax(i,i-width+1,4);
+    }
+    for(let y=height-1;y>=0;y--)for(let x=width-1;x>=0;x--){
+      const i=y*width+x;
+      if(x+1<width)relax(i,i+1,3);if(y+1<height)relax(i,i+width,3);
+      if(x+1<width&&y+1<height)relax(i,i+width+1,4);if(x>0&&y+1<height)relax(i,i+width-1,4);
+    }
+    return {distance,coverage};
   }
 
   function updateOutput() {
     if(!processedImage)return;
     const w=processedImage.width,h=processedImage.height;
+    if(!previewed){
+      canvas.width=w;canvas.height=h;ctx.putImageData(processedImage,0,0);
+      document.querySelector('#previewDimensions').textContent=`${w} × ${h} px`;
+      previewStatus.textContent='IMAGE READY · PREVIEW TO APPLY EFFECTS';
+      downloadButton.disabled=true;copyButton.disabled=true;return;
+    }
     const recolored=new ImageData(new Uint8ClampedArray(processedImage.data),w,h);
     const pixels=recolored.data;
     const sensitivity=Number(document.querySelector('#colorSensitivity').value);
@@ -162,16 +181,15 @@
     if(enabled){
       const total=outWidth*outHeight,mask=new Uint8Array(total);
       for(let y=0;y<h;y++)for(let x=0;x<w;x++)mask[(y+padding)*outWidth+x+padding]=pixels[(y*w+x)*4+3];
-      let inner=new Uint8Array(total);
-      for(let ring=0;ring<count;ring++){
-        const outer=dilate(mask,outWidth,outHeight,weight*(ring+1));
-        const colorInput=document.querySelector(`#outlineColor${ring}`);
-        const color=hexRgb(colorInput?.value||'#ffffff');
-        const layer=ctx.createImageData(outWidth,outHeight),layerPixels=layer.data;
-        for(let i=0;i<total;i++){const alpha=Math.max(0,outer[i]-inner[i]);if(alpha){const p=i*4;layerPixels[p]=color[0];layerPixels[p+1]=color[1];layerPixels[p+2]=color[2];layerPixels[p+3]=alpha;}}
-        ctx.putImageData(layer,0,0);
-        inner=outer;
+      const {distance,coverage}=outlineDistance(mask,outWidth,outHeight);
+      const colors=Array.from({length:count},(_,ring)=>hexRgb(document.querySelector(`#outlineColor${ring}`)?.value||'#ffffff'));
+      const layer=ctx.createImageData(outWidth,outHeight),layerPixels=layer.data,band=weight*3;
+      for(let i=0;i<total;i++){
+        const d=distance[i];if(d===0||d>band*count||!coverage[i])continue;
+        const ring=Math.min(count-1,Math.floor((d-1)/band)),p=i*4,color=colors[ring];
+        layerPixels[p]=color[0];layerPixels[p+1]=color[1];layerPixels[p+2]=color[2];layerPixels[p+3]=coverage[i];
       }
+      ctx.putImageData(layer,0,0);
     } else ctx.clearRect(0,0,outWidth,outHeight);
     ctx.putImageData(recolored,padding,padding);
     document.querySelector('#previewDimensions').textContent=`${outWidth} × ${outHeight} px`;
@@ -214,6 +232,7 @@
       if(image.naturalWidth*image.naturalHeight>16000000){URL.revokeObjectURL(url);alert('This image has too many pixels to process smoothly in your browser. Please use an image under 16 megapixels.');return;}
       if(sourceImage?.src?.startsWith('blob:')) URL.revokeObjectURL(sourceImage.src);
       colorRules.splice(0);borderEnabled.checked=false;picking=false;pickingReplacement=false;pickOverlay.hidden=true;
+      previewed=false;backgroundRemovalEnabled=false;
       sourceImage=image; sourceName=file.name.replace(/\.[^.]+$/,'')||'image';
       canvas.hidden=false; emptyState.hidden=true;
       fileInfo.hidden=false;
@@ -222,7 +241,7 @@
       document.querySelector('#fileThumb').style.backgroundImage=`url("${url}")`;
       document.querySelector('#previewDimensions').textContent=`${image.naturalWidth} × ${image.naturalHeight} px`;
       document.querySelector('#canvasHint').textContent='Adjust tolerance or sample another color.';
-      tolerance.disabled=false; sampleButton.disabled=false;
+      tolerance.disabled=false; sampleButton.disabled=false;previewButton.disabled=false;
       borderEnabled.disabled=false;borderWidth.disabled=false;outlineCount.disabled=false;
       document.querySelector('#addColorButton').disabled=false;document.querySelector('#colorSensitivity').disabled=false;
       refreshOutlineColors();refreshColorRules();
@@ -234,11 +253,19 @@
   }
 
   input.addEventListener('change',()=>{loadFile(input.files[0]);input.value='';});
+  document.addEventListener('paste',event=>{
+    const items=Array.from(event.clipboardData?.items||[]);
+    const imageItem=items.find(item=>item.kind==='file'&&/^image\/(png|jpeg)$/.test(item.type));
+    if(!imageItem)return;
+    const file=imageItem.getAsFile();if(!file)return;
+    event.preventDefault();loadFile(new File([file],file.name||`pasted-image.${imageItem.type==='image/png'?'png':'jpg'}`,{type:imageItem.type}));
+  });
   dropZone.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();input.click();}});
   for(const eventName of ['dragenter','dragover']) dropZone.addEventListener(eventName,event=>{event.preventDefault();dropZone.classList.add('drag-over');});
   for(const eventName of ['dragleave','drop']) dropZone.addEventListener(eventName,event=>{event.preventDefault();dropZone.classList.remove('drag-over');});
   dropZone.addEventListener('drop',event=>loadFile(event.dataTransfer.files[0]));
   tolerance.addEventListener('input',()=>{toleranceValue.value=tolerance.value;scheduleRender();});
+  previewButton.addEventListener('click',()=>{if(!sourceImage)return;previewed=true;backgroundRemovalEnabled=currentTool==='remove';scheduleRender();});
   sampleButton.addEventListener('click',()=>{picking=true;pickingReplacement=false;pickOverlay.textContent='Click a background color to sample it';pickOverlay.hidden=false;sampleButton.textContent='Cancel';previewStatus.textContent='PICK A BACKGROUND COLOR';});
   document.querySelector('#addColorButton').addEventListener('click',()=>{picking=true;pickingReplacement=true;pickOverlay.textContent='Click the color you want to replace';pickOverlay.hidden=false;previewStatus.textContent='PICK A COLOR TO REPLACE';});
   canvas.addEventListener('click',event=>{
@@ -247,7 +274,7 @@
     const x=Math.max(0,Math.min(canvas.width-1,Math.floor((event.clientX-rect.left)*canvas.width/rect.width)));
     const y=Math.max(0,Math.min(canvas.height-1,Math.floor((event.clientY-rect.top)*canvas.height/rect.height)));
     if(pickingReplacement){
-      const padding=borderEnabled.checked?Number(borderWidth.value)*Number(outlineCount.value):0;
+      const padding=previewed&&borderEnabled.checked?Number(borderWidth.value)*Number(outlineCount.value):0;
       const sx=x-padding,sy=y-padding;
       if(sx<0||sy<0||sx>=processedImage.width||sy>=processedImage.height){return;}
       const p=(sy*processedImage.width+sx)*4,pixels=processedImage.data;
@@ -265,15 +292,7 @@
   borderWidth.addEventListener('input',()=>{document.querySelector('#borderWidthValue').value=`${borderWidth.value} px`;refreshOutlineColors();updateOutput();});
   outlineCount.addEventListener('input',()=>{document.querySelector('#outlineCountValue').value=outlineCount.value;refreshOutlineColors();updateOutput();});
   document.querySelector('#colorSensitivity').addEventListener('input',event=>{document.querySelector('#colorSensitivityValue').value=event.target.value;updateOutput();});
-  document.querySelector('#clearButton').addEventListener('click',()=>{
-    if(sourceImage?.src?.startsWith('blob:'))URL.revokeObjectURL(sourceImage.src);
-    sourceImage=null;processedImage=null;colorRules.splice(0);refreshColorRules();refreshOutlineColors();generation++;canvas.hidden=true;emptyState.hidden=false;fileInfo.hidden=true;
-    canvas.width=canvas.height=0;previewStatus.textContent='READY WHEN YOU ARE';document.querySelector('#previewDimensions').textContent='';
-    tolerance.disabled=true;sampleButton.disabled=true;downloadButton.disabled=true;copyButton.disabled=true;
-    borderEnabled.checked=false;borderEnabled.disabled=true;borderWidth.disabled=true;outlineCount.disabled=true;document.querySelector('#addColorButton').disabled=true;document.querySelector('#colorSensitivity').disabled=true;
-    document.querySelector('#canvasHint').textContent='Your image never leaves this browser.';
-    sampleButton.textContent='Pick color';pickOverlay.hidden=true;picking=false;pickingReplacement=false;
-  });
+  document.querySelector('#clearButton').addEventListener('click',clearCurrentImage);
   downloadButton.addEventListener('click',()=>canvas.toBlob(blob=>{
     if(!blob)return;
     const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`${sourceName}-no-background.png`;link.click();
