@@ -2,9 +2,9 @@
   const $ = selector => document.querySelector(selector);
   const input=$('#fileInput'),dropZone=$('#dropZone'),canvas=$('#previewCanvas'),beforeCanvas=$('#beforeCanvas'),canvasStack=$('#canvasStack');
   const ctx=canvas.getContext('2d',{willReadFrequently:true}),beforeCtx=beforeCanvas.getContext('2d');
-  const panels={remove:$('#removeControls'),border:$('#borderControls'),recolor:$('#recolorControls'),crop:$('#cropControls'),convert:$('#convertControls')};
+  const panels={remove:$('#removeControls'),border:$('#borderControls'),recolor:$('#recolorControls'),crop:$('#cropControls'),resize:$('#resizeControls'),convert:$('#convertControls')};
   const colorRules=[];
-  let sourceImage=null,sourcePixels=null,beforeKey='',sourceName='image',sourceUrl='',currentTool='remove',background=[255,255,255],picking=false,renderTimer=0,generation=0,processedImage=null,pdfPages=null,backgroundRemovalFound=true,comparisonState='after';
+  let sourceImage=null,sourcePixels=null,beforeKey='',sourceName='image',sourceUrl='',currentTool='remove',background=[255,255,255],picking=false,renderTimer=0,generation=0,processedImage=null,pdfPages=null,backgroundRemovalFound=true,comparisonState='after',resizeRatio=1;
 
   function clearCurrentImage(){
     clearTimeout(renderTimer);if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl='';sourceImage=null;sourcePixels=null;beforeKey='';processedImage=null;pdfPages=null;colorRules.splice(0);
@@ -12,7 +12,7 @@
     $('#previewStatus').textContent='READY WHEN YOU ARE';$('#previewDimensions').textContent='';$('#compareControls').hidden=true;
     $('#downloadButton').disabled=true;$('#copyButton').disabled=true;$('#tolerance').disabled=true;$('#sampleButton').disabled=true;
     $('#borderWidth').disabled=true;$('#outlineCount').disabled=true;$('#addColorButton').disabled=true;$('#colorSensitivity').disabled=true;$('#keepGradients').disabled=true;
-    $('#cropRatio').disabled=true;$('#smartCropButton').disabled=true;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx','#cropWidthInput','#cropHeightInput'].forEach(id=>$(id).disabled=true);
+    $('#cropRatio').disabled=true;$('#smartCropButton').disabled=true;$('#resizeWidth').disabled=true;$('#resizeHeight').disabled=true;$('#lockResizeRatio').disabled=true;$('#smoothResize').disabled=true;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx','#cropWidthInput','#cropHeightInput'].forEach(id=>$(id).disabled=true);
     $('#canvasHint').textContent='Your image never leaves this browser.';$('#pickOverlay').hidden=true;picking=false;$('#sampleButton').textContent='Pick color';
     refreshColorRules();refreshOutlineColors();
   }
@@ -20,8 +20,8 @@
   function selectTool(tool){
     if(tool!==currentTool)clearCurrentImage();
     currentTool=tool;document.body.dataset.tool=tool;Object.entries(panels).forEach(([name,panel])=>panel.hidden=name!==tool);$('.tools-menu').open=false;
-    const titles={remove:['A little less','background.'],border:['Make it stand out with a','border.'],recolor:['Give your colors a','new look.'],crop:['A better','frame.'],convert:['One image, many','formats.']};
-    const descriptions={remove:'Make your image stand out. Remove a plain background, then take your transparent PNG anywhere.',border:'Add clean, customizable outlines that follow the visible shape of your image.',recolor:'Pick several colors and change them together, with control over nearby shades.',crop:'Choose an aspect ratio, then move and resize the frame to choose what to keep.',convert:'Convert images or every page of a PDF into separate images.'};
+    const titles={remove:['A little less','background.'],border:['Make it stand out with a','border.'],recolor:['Give your colors a','new look.'],crop:['A better','frame.'],resize:['Make it fit with a','resize.'],convert:['One image, many','formats.']};
+    const descriptions={remove:'Make your image stand out. Remove a plain background, then take your transparent PNG anywhere.',border:'Add clean, customizable outlines that follow the visible shape of your image.',recolor:'Pick several colors and change them together, with control over nearby shades.',crop:'Choose an aspect ratio, then move and resize the frame to choose what to keep.',resize:'Set exact output dimensions, keep the original proportions, and choose smoother resampling.',convert:'Convert images or every page of a PDF into separate images.'};
     $('#page-title').innerHTML=`${titles[tool][0]} <span>${titles[tool][1]}</span>`;$('.intro-copy').textContent=descriptions[tool];
   }
   document.querySelectorAll('[data-tool]').forEach(button=>button.addEventListener('click',()=>selectTool(button.dataset.tool)));
@@ -66,6 +66,11 @@
     const left=Math.min(w-cw,Math.max(0,Number($('#cropLeftPx').value)||0)),top=Math.min(h-ch,Math.max(0,Number($('#cropTopPx').value)||0));
     return{x:left,y:top,w:cw,h:ch};
   }
+  function updateResizeDimensions(changed){if(!sourceImage||!$('#resizeWidth').value||!$('#resizeHeight').value)return;let width=Math.max(1,Math.min(16000,Math.round(Number($('#resizeWidth').value)||sourceImage.naturalWidth))),height=Math.max(1,Math.min(16000,Math.round(Number($('#resizeHeight').value)||sourceImage.naturalHeight)));
+    if($('#lockResizeRatio').checked){if(changed==='width')height=Math.max(1,Math.min(16000,Math.round(width/resizeRatio)));else if(changed==='height')width=Math.max(1,Math.min(16000,Math.round(height*resizeRatio)));else height=Math.max(1,Math.min(16000,Math.round(width/resizeRatio)));}
+    const maxPixels=16000000;if(width*height>maxPixels){const scale=Math.sqrt(maxPixels/(width*height));width=Math.max(1,Math.floor(width*scale));height=Math.max(1,Math.floor(height*scale));}
+    $('#resizeWidth').value=width;$('#resizeHeight').value=height;scheduleRender(0);
+  }
   function smartCenterCrop(){if(!sourceImage||!sourcePixels)return;const w=sourceImage.naturalWidth,h=sourceImage.naturalHeight,crop=cropRect(w,h),data=sourcePixels.data;let minX=w,minY=h,maxX=-1,maxY=-1;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(data[(y*w+x)*4+3]>4){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
     if(maxX<0){setCropNumbers({...crop,x:Math.round((w-crop.w)/2),y:Math.round((h-crop.h)/2)});}
@@ -87,7 +92,7 @@
       const sensitivity=Number($('#colorSensitivity').value),keepGradients=$('#keepGradients').checked,rules=colorRules.map(rule=>({from:rule.from,to:hexRgb(rule.to),fromHsl:rgbToHsl(rule.from),toHsl:rgbToHsl(hexRgb(rule.to))}));
       for(let i=0;i<pixels.length;i+=4){if(!pixels[i+3])continue;const pixelHsl=keepGradients?rgbToHsl([pixels[i],pixels[i+1],pixels[i+2]]):null;let best=null,distanceLimit=sensitivity;for(const rule of rules){let d;if(keepGradients){const hueDelta=Math.abs(pixelHsl[0]-rule.fromHsl[0]),hueDistance=Math.min(hueDelta,360-hueDelta)*2,saturationDistance=Math.abs(pixelHsl[1]-rule.fromHsl[1])*255;d=Math.hypot(hueDistance,saturationDistance);}else{const dr=pixels[i]-rule.from[0],dg=pixels[i+1]-rule.from[1],db=pixels[i+2]-rule.from[2];d=Math.sqrt(dr*dr+dg*dg+db*db);}if(d<=distanceLimit){distanceLimit=d;best=rule;}}if(best){const rgb=keepGradients?hslToRgb(best.toHsl[0],best.toHsl[1],pixelHsl[2]):best.to;pixels[i]=rgb[0];pixels[i+1]=rgb[1];pixels[i+2]=rgb[2];}}
     }
-    const border=currentTool==='border',weight=Number($('#borderWidth').value),count=Number($('#outlineCount').value),padding=border?weight*count:0,outW=w+padding*2,outH=h+padding*2;
+    const border=currentTool==='border',resize=currentTool==='resize',weight=Number($('#borderWidth').value),count=Number($('#outlineCount').value),padding=border?weight*count:0,outW=border?w+padding*2:resize?Number($('#resizeWidth').value)||w:w,outH=border?h+padding*2:resize?Number($('#resizeHeight').value)||h:h;
     const work=document.createElement('canvas');work.width=outW;work.height=outH;const workCtx=work.getContext('2d',{willReadFrequently:true});
     if(border){
       const total=outW*outH,mask=new Uint8Array(total);let peakAlpha=0;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const alpha=pixels[(y*w+x)*4+3];mask[(y+padding)*outW+x+padding]=alpha;if(alpha>peakAlpha)peakAlpha=alpha;}
@@ -101,15 +106,15 @@
         lp[p]=color[0];lp[p+1]=color[1];lp[p+2]=color[2];lp[p+3]=Math.round(255*(1-smoothstep(maxRadius-.5,maxRadius+.5,radius)));
       }workCtx.putImageData(layer,0,0);
     }
-    if(border){const sourceLayer=document.createElement('canvas');sourceLayer.width=w;sourceLayer.height=h;sourceLayer.getContext('2d').putImageData(output,0,0);workCtx.drawImage(sourceLayer,padding,padding);}
+    if(border||resize){const sourceLayer=document.createElement('canvas');sourceLayer.width=w;sourceLayer.height=h;sourceLayer.getContext('2d').putImageData(output,0,0);if(border)workCtx.drawImage(sourceLayer,padding,padding);else{workCtx.imageSmoothingEnabled=true;workCtx.imageSmoothingQuality=$('#smoothResize').checked?'high':'low';workCtx.drawImage(sourceLayer,0,0,outW,outH);}}
     else workCtx.putImageData(output,0,0);
     let sx=0,sy=0,sw=outW,sh=outH;
     if(currentTool==='crop'){const crop=cropRect(w,h);sx=crop.x;sy=crop.y;sw=crop.w;sh=crop.h;}
     const finalData=workCtx.getImageData(sx,sy,sw,sh);canvas.width=sw;canvas.height=sh;ctx.putImageData(finalData,0,0);
-    const beforeW=currentTool==='crop'?w:sw,beforeH=currentTool==='crop'?h:sh,nextBeforeKey=`${sourceImage.src}|${currentTool==='crop'?'crop':border?`border-${padding}`:'original'}|${beforeW}x${beforeH}`;
+    const beforeW=currentTool==='crop'?w:sw,beforeH=currentTool==='crop'?h:sh,nextBeforeKey=`${sourceImage.src}|${currentTool==='crop'?'crop':border?`border-${padding}`:resize?`resize-${sw}x${sh}`:'original'}|${beforeW}x${beforeH}`;
     if(beforeKey!==nextBeforeKey){beforeCanvas.width=beforeW;beforeCanvas.height=beforeH;beforeCtx.clearRect(0,0,beforeW,beforeH);if(currentTool==='crop')beforeCtx.drawImage(sourceImage,0,0,w,h);else if(border)beforeCtx.drawImage(sourceImage,padding,padding,w,h);else beforeCtx.drawImage(sourceImage,0,0,sw,sh);beforeKey=nextBeforeKey;}
     canvasStack.hidden=false;canvasStack.dataset.crop=String(currentTool==='crop');$('#cropFrame').hidden=currentTool!=='crop';$('#emptyState').hidden=true;$('#compareControls').hidden=currentTool==='crop';updateComparison();if(currentTool==='crop')updateCropFrame();
-    $('#previewDimensions').textContent=`${sw} × ${sh} px`;$('#previewStatus').textContent=pdfPages&&currentTool==='convert'?`${pdfPages.length} PDF PAGES READY · EXPORT AS ZIP`:currentTool==='remove'?(backgroundRemovalFound?'BACKGROUND REMOVED':'NO BACKGROUND MATCH · PICK A COLOR OR INCREASE TOLERANCE'):({border:'BORDER ADDED',recolor:colorRules.length?'COLORS CHANGED':'IMAGE READY',crop:'IMAGE CROPPED',convert:'IMAGE READY'})[currentTool];
+    $('#previewDimensions').textContent=`${sw} × ${sh} px`;$('#previewStatus').textContent=pdfPages&&currentTool==='convert'?`${pdfPages.length} PDF PAGES READY · EXPORT AS ZIP`:currentTool==='remove'?(backgroundRemovalFound?'BACKGROUND REMOVED':'NO BACKGROUND MATCH · PICK A COLOR OR INCREASE TOLERANCE'):({border:'BORDER ADDED',recolor:colorRules.length?'COLORS CHANGED':'IMAGE READY',crop:'IMAGE CROPPED',resize:'IMAGE RESIZED',convert:'IMAGE READY'})[currentTool];
     $('#downloadButton').disabled=false;$('#copyButton').disabled=false;
   }
 
@@ -133,7 +138,7 @@
       if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl=blobUrl;sourceImage=image;const pixelCanvas=document.createElement('canvas');pixelCanvas.width=image.naturalWidth;pixelCanvas.height=image.naturalHeight;const pixelCtx=pixelCanvas.getContext('2d',{willReadFrequently:true});pixelCtx.drawImage(image,0,0);sourcePixels=pixelCtx.getImageData(0,0,image.naturalWidth,image.naturalHeight);beforeKey='';sourceName=name.replace(/\.[^.]+$/,'')||'image';colorRules.splice(0);$('#fileInfo').hidden=false;$('#emptyState').hidden=true;canvasStack.hidden=false;
       $('#fileName').textContent=name;$('#fileDimensions').textContent=`${image.naturalWidth} × ${image.naturalHeight} px`;$('#fileThumb').style.backgroundImage=`url("${url}")`;
       $('#canvasHint').textContent=currentTool==='crop'?'Drag the crop frame to reposition it.':'Drag the comparison slider to see before and after.';$('#tolerance').disabled=false;$('#sampleButton').disabled=false;$('#borderWidth').disabled=false;$('#outlineCount').disabled=false;$('#addColorButton').disabled=false;$('#colorSensitivity').disabled=false;$('#keepGradients').disabled=false;
-      $('#cropRatio').disabled=false;$('#smartCropButton').disabled=false;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx'].forEach(id=>$(id).disabled=false);
+      $('#cropRatio').disabled=false;$('#smartCropButton').disabled=false;$('#resizeWidth').disabled=false;$('#resizeHeight').disabled=false;$('#lockResizeRatio').disabled=false;$('#smoothResize').disabled=false;resizeRatio=image.naturalWidth/image.naturalHeight;$('#resizeWidth').value=image.naturalWidth;$('#resizeHeight').value=image.naturalHeight;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx'].forEach(id=>$(id).disabled=false);
       $('#cropRatio').value='free';$('#cropCustom').hidden=true;setCropNumbers({w:Math.max(1,Math.round(image.naturalWidth*.8)),h:Math.max(1,Math.round(image.naturalHeight*.8)),x:Math.round(image.naturalWidth*.1),y:Math.round(image.naturalHeight*.1)});comparisonState='after';
       refreshOutlineColors();refreshColorRules();setBackground([255,255,255],'Sampled from the corner');scheduleRender();
     };
@@ -198,6 +203,7 @@
   $('#cropRatio').addEventListener('change',updateCropRatio);$('#cropRatioW').addEventListener('input',()=>{if($('#cropRatio').value==='custom')updateCropRatio();});$('#cropRatioH').addEventListener('input',()=>{if($('#cropRatio').value==='custom')updateCropRatio();});
   $('#smartCropButton').addEventListener('click',smartCenterCrop);
   $('#cropWidthInput').addEventListener('input',updateTypedCrop);$('#cropHeightInput').addEventListener('input',updateTypedCrop);
+  $('#resizeWidth').addEventListener('input',()=>updateResizeDimensions('width'));$('#resizeHeight').addEventListener('input',()=>updateResizeDimensions('height'));$('#lockResizeRatio').addEventListener('change',()=>{if(sourceImage&&$('#lockResizeRatio').checked)resizeRatio=Number($('#resizeWidth').value)/Number($('#resizeHeight').value);});$('#smoothResize').addEventListener('change',updateOutput);
   $('#clearButton').addEventListener('click',clearCurrentImage);$('#downloadButton').addEventListener('click',exportImage);
   $('#copyButton').addEventListener('click',async()=>{if(!navigator.clipboard||typeof ClipboardItem==='undefined'){alert('Copying images is unavailable in this browser.');return;}try{const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);$('#copyButton span').textContent='Copied!';setTimeout(()=>$('#copyButton span').textContent='Copy PNG',1500);}catch{alert('Clipboard access was blocked.');}});
 })();

@@ -4,8 +4,8 @@ Image Background Remover
 Lumina Canvas is a browser based image editor and converter. Open `index.html` in a
 modern browser to use it. Effects apply automatically after an image loads.
 
-Use the menu to switch between background removal, shape-following borders, and
-color replacement. Borders can have one to five colored outlines with a
+Use the menu to switch among background removal, shape-following borders, color
+replacement, cropping, resizing, and format conversion. Borders can have one to five colored outlines with a
 custom line weight. In the color tool, sample multiple source colors, choose a
 replacement for each, and adjust sensitivity to include more nearby shades.
 Paste an image with Ctrl+V, or use the picker/drop area. The Before/After
@@ -15,6 +15,9 @@ the current image, so load it again in the tool you want to use.
 The crop tool supports common aspect ratios and a custom ratio. Drag the crop
 frame to choose the part of the photo to keep, and drag its corner to resize.
 For free crop, enter exact width and height values in the crop controls.
+The resize tool accepts exact output dimensions, can lock the aspect ratio, and
+offers high-quality smoothing for resized images. Output is limited to 16
+megapixels to keep browser memory use manageable.
 Export the result as PNG, JPG, WebP, SVG, or PDF. In the format converter,
 loading a PDF converts every page into a separate image in a ZIP archive. PDF.js
 is loaded from a CDN and needs an internet connection.
@@ -34,5 +37,5 @@ The header logo and favicon are `assets/logo.png` and `assets/favicon.png`.
 Replace those PNGs to change the site branding for everyone using the project;
 the Lumina Canvas wordmark and page title are in `index.html`.
 
-The interface palette uses navy `#0e103d` with pale pink `#f2d7ee` highlights
-and text.
+The interface uses a white, black, and sunshine yellow palette with a subtle
+dot grid in the page background.
