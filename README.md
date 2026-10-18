@@ -12,10 +12,11 @@ Paste an image with Ctrl+V, or use the picker/drop area. The before/after
 slider compares your original with the edited result. Switching tools clears
 the current image, so load it again in the tool you want to use.
 
-The crop tool supports common aspect ratios, a custom ratio, and editable crop
-dimensions and position. Export the result as PNG, JPG, WebP, SVG, or PDF. You
-can also load a PDF and convert its first page to an image format; this uses
-PDF.js from a CDN and needs an internet connection.
+The crop tool supports common aspect ratios and a custom ratio. Drag the crop
+frame to choose the part of the photo to keep, and drag its corner to resize.
+Export the result as PNG, JPG, WebP, SVG, or PDF. In the format converter,
+loading a PDF converts every page into a separate image in a ZIP archive. PDF.js
+is loaded from a CDN and needs an internet connection.
 
 Choose an image or drop it into the upload area. The remover samples the image
 corners to find a background color; use **Pick color** to sample another spot,
