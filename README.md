@@ -1,12 +1,11 @@
 # Lumina Canvas
-Image Background Remover
+Browser-based image editor
 
 Lumina Canvas is a browser based image editor and converter. Open `index.html` in a
 modern browser to use it. Effects apply automatically after an image loads.
 
 Use the menu to switch among background removal, shape-following borders, color
-replacement, cropping, resizing, and format conversion. Borders can have one to five colored outlines with a
-custom line weight. In the color tool, sample multiple source colors, choose a
+replacement, cropping, resizing, and format conversion. Borders can have one to five colored outlines, each with its own thickness. In the color tool, sample multiple source colors, choose a
 replacement for each, and adjust sensitivity to include more nearby shades.
 Paste an image with Ctrl+V, or use the picker/drop area. The Before/After
 toggle crossfades between your original and edited result. Switching tools clears

@@ -23,14 +23,13 @@
   <header class="topbar">
     <a class="brand" href="#" aria-label="Lumina Canvas home"><img class="brand-logo" src="assets/logo.png" alt=""><span class="brand-title-text">Lumina Canvas</span></a>
     <details class="tools-menu"><summary>☰ <span>Menu</span></summary><div class="menu-options"><button type="button" data-tool="remove">Background remover</button><button type="button" data-tool="border">Add a border</button><button type="button" data-tool="recolor">Change colors</button><button type="button" data-tool="crop">Crop image</button><button type="button" data-tool="resize">Resize image</button><button type="button" data-tool="convert">Format converter</button></div></details>
-    <span class="privacy"><span class="privacy-dot"></span>Private by design · files stay on your device</span>
+    <span class="privacy"><span class="privacy-dot"></span>Files stay on your device</span>
   </header>
 
   <main>
     <section class="intro" aria-labelledby="page-title">
-      <div class="eyebrow"><span class="eyebrow-line"></span>THE SIMPLE IMAGE TOOL</div>
-      <h1 id="page-title">A little less <span>background.</span></h1>
-      <p class="intro-copy">Make your image stand out. Remove a plain background, then take your transparent PNG anywhere.</p>
+      <h1 id="page-title">Remove a <span>background.</span></h1>
+      <p class="intro-copy">Remove a solid or evenly colored background from an image.</p>
     </section>
 
     <section class="workspace" aria-label="Background remover">
@@ -54,17 +53,17 @@
           <div class="range-ends"><span>Precise</span><span>More forgiving</span></div>
         </div>
         <div class="sample-control"><span class="sample-swatch" id="sampleSwatch"></span><span class="sample-copy"><strong>Background color</strong><small id="sampleLabel">Sampled from the corner</small></span><button id="sampleButton" class="sample-button" type="button" disabled>Pick color</button></div>
-        <p class="tip"><span aria-hidden="true">✳</span> For a different background, choose <b>Pick color</b> and click it in your image.</p>
+        <p class="tip">For a different background, choose <b>Pick color</b> and click it in your image.</p>
         </div>
         <div id="borderControls" class="tool-controls" hidden>
           <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Add a border</h2><p>Trace the visible shape</p></div></div>
           <p class="tool-description">The outline follows visible and translucent pixels, including transparent PNGs. It expands outward from your artwork.</p>
-          <label class="field-label" for="borderWidth">Line weight <output id="borderWidthValue">8 px</output></label>
+          <label class="field-label" for="borderWidth">Default thickness <output id="borderWidthValue">8 px</output></label>
           <input id="borderWidth" class="full-range" type="range" min="1" max="100" value="8" disabled>
           <label class="field-label outline-count-label" for="outlineCount">Number of outlines <output id="outlineCountValue">1</output></label>
           <input id="outlineCount" class="full-range" type="range" min="1" max="5" value="1" disabled>
           <div id="outlineColors" class="outline-colors"></div>
-          <p class="tool-description small">Each outline adds one line weight. Colors are listed from inner to outer.</p>
+          <p class="tool-description small">Set the default above, then adjust each outline. Listed from inner to outer.</p>
         </div>
         <div id="recolorControls" class="tool-controls" hidden>
           <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Change colors</h2><p>Replace several colors at once</p></div></div>
@@ -107,14 +106,13 @@
       <section class="preview-panel" aria-label="Image preview">
         <div class="preview-top"><div class="preview-label"><span class="live-dot"></span><span id="previewStatus">READY WHEN YOU ARE</span></div><div class="preview-top-tools"><div class="preview-dimensions" id="previewDimensions"></div><div id="zoomControls" class="zoom-controls" hidden><button id="zoomOut" type="button" aria-label="Zoom out" disabled>−</button><output id="zoomLabel">Fit</output><button id="zoomIn" type="button" aria-label="Zoom in" disabled>+</button><button id="zoomFit" type="button" disabled>Fit</button></div></div></div>
         <div class="canvas-wrap" id="canvasWrap">
-          <div class="empty-state" id="emptyState"><div class="empty-art" aria-hidden="true"><div class="art-back"></div><div class="art-photo"><span class="art-sun"></span><span class="art-hill hill-one"></span><span class="art-hill hill-two"></span><span class="art-frame"></span></div><span class="sparkle sparkle-one">✳</span><span class="sparkle sparkle-two">✳</span></div><h2>Your canvas is clear.</h2><p>Add an image and we’ll get to work.</p><span class="empty-caption">MADE FOR THE THINGS YOU MAKE</span></div>
+          <div class="empty-state" id="emptyState"><h2>No image loaded</h2><p>Choose a file or paste an image to begin.</p></div>
           <div id="canvasStack" class="canvas-stack" hidden><canvas id="beforeCanvas" aria-label="Original image"></canvas><canvas id="previewCanvas" aria-label="Edited image"></canvas><div id="cropFrame" class="crop-frame" hidden><span class="crop-frame-hint">Move crop area</span><button class="crop-resize" type="button" aria-label="Resize crop area"></button></div></div>
           <button id="pickOverlay" class="pick-overlay" type="button" hidden>Click the background color to sample it</button>
         </div>
         <div class="preview-bottom"><span class="checker-key"><i></i>Transparent areas</span><div class="compare-controls" id="compareControls" hidden><span>Compare</span><div class="comparison-toggle" id="comparisonToggle" data-state="after" role="group" aria-label="Choose before or after image"><span class="comparison-thumb" aria-hidden="true"></span><button type="button" data-comparison="before" aria-pressed="false">Before</button><button type="button" data-comparison="after" aria-pressed="true">After</button></div></div><span id="canvasHint">Your image never leaves this browser.</span></div>
       </section>
     </section>
-    <footer class="page-footer"><span>Good things look better with a little breathing room.</span><span>MADE WITH CARE <b>✳</b></span></footer>
   </main>
 </body>
 </html>
