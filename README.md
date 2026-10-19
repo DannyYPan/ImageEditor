@@ -1,6 +1,8 @@
 # Optica Studio
 Browser-based image editor
 
+Visit at https://dannyypan.github.io/OpticaStudio/
+
 Optica Studio is a browser-based image editor and converter. Effects apply automatically after an image loads.
 
 Use the menu to switch among background removal, shape-following borders, color
