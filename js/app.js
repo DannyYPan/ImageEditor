@@ -181,7 +181,7 @@
     if(mime==='application/pdf')blob=makePdf();
     else if(mime==='image/svg+xml'){const data=canvas.toDataURL('image/png'),svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}"><image width="100%" height="100%" href="${data}"/></svg>`;blob=new Blob([svg],{type:mime});}
     else blob=await new Promise(resolve=>{if(mime==='image/jpeg'){const flat=document.createElement('canvas');flat.width=canvas.width;flat.height=canvas.height;const flatCtx=flat.getContext('2d');flatCtx.fillStyle='#fff';flatCtx.fillRect(0,0,flat.width,flat.height);flatCtx.drawImage(canvas,0,0);flat.toBlob(resolve,mime,.94);}else canvas.toBlob(resolve,mime,.94);});
-    if(!blob||((mime==='image/webp'||mime==='image/jpeg')&&blob.type!==mime)){alert('This format is not supported by your browser.');return;}const link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download=`${sourceName}-lumina-canvas.${ext}`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    if(!blob||((mime==='image/webp'||mime==='image/jpeg')&&blob.type!==mime)){alert('This format is not supported by your browser.');return;}const link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download=`${sourceName}-optica-studio.${ext}`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
   input.addEventListener('change',()=>{loadFile(input.files[0]);input.value='';});

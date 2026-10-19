@@ -1,7 +1,7 @@
-# Lumina Canvas
+# Optica Studio
 Browser-based image editor
 
-Lumina Canvas is a browser-based image editor and converter. Open `index.html` in a
+Optica Studio is a browser-based image editor and converter. Open `index.html` in a
 modern browser to use it. Effects apply automatically after an image loads.
 
 Use the menu to switch among background removal, shape-following borders, color
@@ -37,7 +37,7 @@ are not processed to avoid excessive browser memory use.
 Branding is set in the project code and assets, not through an editor control.
 The header logo and favicon are `assets/logo.png` and `assets/favicon.png`.
 Replace those PNGs to change the site branding for everyone using the project;
-the Lumina Canvas wordmark and page title are in `index.html`.
+the Optica Studio wordmark and page title are in `index.html`.
 
 The interface uses a white, black, and sunshine yellow palette with a subtle
 dot grid in the page background.
