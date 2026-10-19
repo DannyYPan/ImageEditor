@@ -1,8 +1,7 @@
 # Optica Studio
 Browser-based image editor
 
-Optica Studio is a browser-based image editor and converter. Open `index.html` in a
-modern browser to use it. Effects apply automatically after an image loads.
+Optica Studio is a browser-based image editor and converter. Effects apply automatically after an image loads.
 
 Use the menu to switch among background removal, shape-following borders, color
 replacement, cropping, resizing, and format conversion. Borders can have one to five colored outlines, each with its own thickness. In the color tool, sample multiple source colors, choose a
@@ -33,11 +32,3 @@ Images are processed locally and are not uploaded. The color based remover is
 best for solid or evenly colored backgrounds; it is not an AI cutout tool and
 can struggle with busy backgrounds, shadows, or hair. Images over 16 megapixels
 are not processed to avoid excessive browser memory use.
-
-Branding is set in the project code and assets, not through an editor control.
-The header logo and favicon are `assets/logo.png` and `assets/favicon.png`.
-Replace those PNGs to change the site branding for everyone using the project;
-the Optica Studio wordmark and page title are in `index.html`.
-
-The interface uses a white, black, and sunshine yellow palette with a subtle
-dot grid in the page background.
