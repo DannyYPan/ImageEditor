@@ -27,7 +27,7 @@
     if(previousTool!==tool)transitionToolPanel(panels[tool],panels[previousTool]);
     if(activePage!=='editor'){activePage='editor';transitionPageView(editorView,toolHome);}
     $('.tools-menu').hidden=false;$('.tools-menu').open=false;
-    const titles={remove:['Background','remover'],border:['Image','border'],recolor:['Color','replacement'],crop:['Crop','image'],resize:['Resize','image'],convert:['Format','converter']};
+    const titles={remove:['Background','remover'],border:['Border','maker'],recolor:['Color','replacer'],crop:['Image','cropper'],resize:['Image','resizer'],convert:['Image','converter']};
     const descriptions={remove:'Remove matching background colors throughout the image, including enclosed areas.',border:'Add outlines that follow the visible shape of the image.',recolor:'Replace colors and control how nearby shades are matched.',crop:'Choose an aspect ratio, then move and resize the crop frame.',resize:'Set output dimensions and choose how the image is resampled.',convert:'Convert images or browse pages in a PDF.'};
     $('#page-title').innerHTML=`${titles[tool][0]} <span>${titles[tool][1]}</span>`;$('.intro-copy').textContent=descriptions[tool];
   }

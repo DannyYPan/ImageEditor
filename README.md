@@ -19,7 +19,7 @@ For free crop, enter exact width and height values in the crop controls.
 The resize tool accepts exact output dimensions, can lock the aspect ratio, and
 offers high-quality smoothing for resized images. Output is limited to 16
 megapixels to keep browser memory use manageable.
-Export the result as PNG, JPG, WebP, SVG, or PDF. In the format converter,
+Export the result as PNG, JPG, WebP, SVG, or PDF. In the image converter,
 use the page slider to inspect each PDF page; exporting converts every page into
 a separate image in a ZIP archive. PDF.js is loaded from a CDN and needs an
 internet connection.
