@@ -3,7 +3,7 @@
   const input=$('#fileInput'),dropZone=$('#dropZone'),canvas=$('#previewCanvas'),beforeCanvas=$('#beforeCanvas'),canvasStack=$('#canvasStack');
   const ctx=canvas.getContext('2d',{willReadFrequently:true}),beforeCtx=beforeCanvas.getContext('2d');
   const panels={remove:$('#removeControls'),border:$('#borderControls'),recolor:$('#recolorControls'),crop:$('#cropControls'),resize:$('#resizeControls'),convert:$('#convertControls')};
-  const toolHome=$('#toolHome'),editorView=$('#editorView'),allToolsButton=$('#allToolsButton');
+  const toolHome=$('#toolHome'),editorView=$('#editorView');
   const colorRules=[];
   let sourceImage=null,sourcePixels=null,beforeKey='',sourceName='image',sourceUrl='',pdfFileName='',pdfPageIndex=0,pdfPageRequest=0,currentTool='remove',background=[255,255,255],picking=false,renderTimer=0,generation=0,processedImage=null,pdfPages=null,backgroundRemovalFound=true,comparisonState='after',resizeRatio=1,previewZoom=1,zoomPanX=0,zoomPanY=0;
 
@@ -21,13 +21,13 @@
 
   function selectTool(tool){
     if(tool!==currentTool)clearCurrentImage();
-    currentTool=tool;document.body.dataset.tool=tool;Object.entries(panels).forEach(([name,panel])=>panel.hidden=name!==tool);toolHome.hidden=true;editorView.hidden=false;allToolsButton.hidden=false;
+    currentTool=tool;document.body.dataset.tool=tool;Object.entries(panels).forEach(([name,panel])=>panel.hidden=name!==tool);toolHome.hidden=true;editorView.hidden=false;$('.tools-menu').open=false;
     const titles={remove:['Background','remover'],border:['Image','border'],recolor:['Color','replacement'],crop:['Crop','image'],resize:['Resize','image'],convert:['Format','converter']};
     const descriptions={remove:'Remove matching background colors throughout the image, including enclosed areas.',border:'Add outlines that follow the visible shape of the image.',recolor:'Replace colors and control how nearby shades are matched.',crop:'Choose an aspect ratio, then move and resize the crop frame.',resize:'Set output dimensions and choose how the image is resampled.',convert:'Convert images or browse pages in a PDF.'};
     $('#page-title').innerHTML=`${titles[tool][0]} <span>${titles[tool][1]}</span>`;$('.intro-copy').textContent=descriptions[tool];
   }
   document.querySelectorAll('[data-tool]').forEach(button=>button.addEventListener('click',()=>selectTool(button.dataset.tool)));
-  allToolsButton.addEventListener('click',()=>{clearCurrentImage();editorView.hidden=true;toolHome.hidden=false;allToolsButton.hidden=true;});
+  $('.brand').addEventListener('click',event=>{event.preventDefault();clearCurrentImage();$('.tools-menu').open=false;editorView.hidden=true;toolHome.hidden=false;});
 
   const averageCorner=(data,x,y,w,h)=>{let r=0,g=0,b=0,n=0;for(let dy=0;dy<4;dy++)for(let dx=0;dx<4;dx++){const p=(Math.min(h-1,y+dy)*w+Math.min(w-1,x+dx))*4;if(data.data[p+3]>180){r+=data.data[p];g+=data.data[p+1];b+=data.data[p+2];n++;}}return n?[r/n,g/n,b/n]:[255,255,255];};
   function setBackground(color,label='Picked from your image'){background=color.map(Math.round);$('#sampleSwatch').style.backgroundColor=`rgb(${background.join(',')})`;$('#sampleLabel').textContent=label;if(sourceImage)scheduleRender();}
