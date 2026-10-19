@@ -23,22 +23,22 @@
   <header class="topbar">
     <a class="brand" href="#" aria-label="Lumina Canvas home"><img class="brand-logo" src="assets/logo.png" alt=""><span class="brand-title-text">Lumina Canvas</span></a>
     <details class="tools-menu"><summary>☰ <span>Menu</span></summary><div class="menu-options"><button type="button" data-tool="remove">Background remover</button><button type="button" data-tool="border">Add a border</button><button type="button" data-tool="recolor">Change colors</button><button type="button" data-tool="crop">Crop image</button><button type="button" data-tool="resize">Resize image</button><button type="button" data-tool="convert">Format converter</button></div></details>
-    <span class="privacy"><span class="privacy-dot"></span>Files stay on your device</span>
+    <span class="privacy"><span class="privacy-dot"></span>Processed in your browser</span>
   </header>
 
   <main>
     <section class="intro" aria-labelledby="page-title">
-      <h1 id="page-title">Remove a <span>background.</span></h1>
-      <p class="intro-copy">Remove a solid or evenly colored background from an image.</p>
+      <h1 id="page-title">Background <span>remover</span></h1>
+      <p class="intro-copy">Remove solid or evenly colored backgrounds from images.</p>
     </section>
 
     <section class="workspace" aria-label="Background remover">
       <aside class="tools-panel">
-        <div class="panel-heading"><span class="step">01</span><div><h2>Your image</h2><p>Start with an image or PDF</p></div></div>
+        <div class="panel-heading"><span class="step">01</span><div><h2>Image</h2><p>Choose an image or PDF</p></div></div>
         <label class="upload-card" id="dropZone" for="fileInput" tabindex="0">
           <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf" hidden>
           <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5"/></svg></span>
-          <span class="upload-title">Drop an image here</span>
+          <span class="upload-title">Choose an image</span>
           <span class="upload-subtitle">or <span class="browse-link">browse files</span> · paste with Ctrl+V</span>
           <span class="file-types">JPG · PNG · WEBP · PDF <i>·</i> UP TO 25 MB</span>
         </label>
@@ -46,7 +46,7 @@
 
         <div class="divider"></div>
         <div id="removeControls" class="tool-controls">
-        <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Fine-tune</h2><p>Tell us what to clear</p></div></div>
+        <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Background removal</h2><p>Adjust color matching</p></div></div>
         <div class="control-block">
           <div class="control-title-row"><label for="tolerance">Color tolerance</label><output id="toleranceValue" for="tolerance">48</output></div>
           <input id="tolerance" type="range" min="12" max="220" value="48" disabled>
@@ -74,7 +74,7 @@
           <input id="colorSensitivity" class="full-range" type="range" min="5" max="150" value="35" disabled>
           <div class="range-ends recolor-ends"><span>Similar colors only</span><span>Include more shades</span></div>
           <div id="colorRules" class="color-rules"><p class="empty-rules">No colors selected yet.</p></div>
-          <p class="tool-description small">Higher sensitivity also changes nearby shades. Keep gradients matches by hue and saturation, then preserves each pixel’s original lightness.</p>
+          <p class="tool-description small">Higher sensitivity includes more nearby shades. Keep gradients matches hue and saturation while preserving each pixel’s lightness.</p>
         </div>
         <div id="cropControls" class="tool-controls" hidden>
           <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Crop image</h2><p>Move and resize the frame to choose what to keep</p></div></div>

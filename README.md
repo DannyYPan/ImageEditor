@@ -1,7 +1,7 @@
 # Lumina Canvas
 Browser-based image editor
 
-Lumina Canvas is a browser based image editor and converter. Open `index.html` in a
+Lumina Canvas is a browser-based image editor and converter. Open `index.html` in a
 modern browser to use it. Effects apply automatically after an image loads.
 
 Use the menu to switch among background removal, shape-following borders, color

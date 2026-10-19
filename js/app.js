@@ -21,8 +21,8 @@
   function selectTool(tool){
     if(tool!==currentTool)clearCurrentImage();
     currentTool=tool;document.body.dataset.tool=tool;Object.entries(panels).forEach(([name,panel])=>panel.hidden=name!==tool);$('.tools-menu').open=false;
-    const titles={remove:['Remove a','background.'],border:['Add a','border.'],recolor:['Change','colors.'],crop:['Crop','image.'],resize:['Resize','image.'],convert:['Convert','files.']};
-    const descriptions={remove:'Remove a solid or evenly colored background from an image.',border:'Add outlines that follow the visible shape of your image.',recolor:'Replace one or more colors and control how nearby shades are matched.',crop:'Choose an aspect ratio, then move and resize the frame.',resize:'Set output dimensions and choose how the image is resampled.',convert:'Convert images or every page of a PDF into separate images.'};
+    const titles={remove:['Background','remover'],border:['Image','border'],recolor:['Color','replacement'],crop:['Crop','image'],resize:['Resize','image'],convert:['Format','converter']};
+    const descriptions={remove:'Remove solid or evenly colored backgrounds from images.',border:'Add outlines that follow the visible shape of the image.',recolor:'Replace colors and control how nearby shades are matched.',crop:'Choose an aspect ratio, then move and resize the crop frame.',resize:'Set output dimensions and choose how the image is resampled.',convert:'Convert images or browse pages in a PDF.'};
     $('#page-title').innerHTML=`${titles[tool][0]} <span>${titles[tool][1]}</span>`;$('.intro-copy').textContent=descriptions[tool];
   }
   document.querySelectorAll('[data-tool]').forEach(button=>button.addEventListener('click',()=>selectTool(button.dataset.tool)));
