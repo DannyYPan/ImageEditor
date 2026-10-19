@@ -22,12 +22,13 @@
 <body>
   <header class="topbar">
     <a class="brand" href="#" aria-label="Optica Studio home"><img class="brand-logo" src="assets/logo.png" alt=""><span class="brand-title-text">Optica Studio</span></a>
-    <details class="tools-menu"><summary><span>Tools</span></summary><div class="menu-options"><button type="button" data-tool="remove">Background remover</button><button type="button" data-tool="border">Add a border</button><button type="button" data-tool="recolor">Change colors</button><button type="button" data-tool="crop">Crop image</button><button type="button" data-tool="resize">Resize image</button><button type="button" data-tool="convert">Format converter</button></div></details>
+    <details class="tools-menu" hidden><summary><span>Tools</span></summary><div class="menu-options"><button type="button" data-tool="remove">Background remover</button><button type="button" data-tool="border">Add a border</button><button type="button" data-tool="recolor">Change colors</button><button type="button" data-tool="crop">Crop image</button><button type="button" data-tool="resize">Resize image</button><button type="button" data-tool="convert">Format converter</button></div></details>
     <span class="privacy"><span class="privacy-dot"></span>Processed in your browser</span>
   </header>
 
   <main>
-    <section class="tool-home" id="toolHome" aria-labelledby="home-title">
+    <div class="views-container">
+    <section class="tool-home page-view" id="toolHome" aria-labelledby="home-title">
       <div class="tool-home-heading"><span class="home-eyebrow">OPTICA STUDIO</span><h1 id="home-title">What would you like to do?</h1><p>Choose a tool to get started. Your images stay on your device.</p></div>
       <div class="tool-grid">
         <button class="tool-card" type="button" data-tool="remove"><span class="tool-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9l2 2 3-3 4 5M7 16h10"/></svg></span><span class="tool-card-copy"><strong>Background remover</strong><small>Clear a flat or evenly colored backdrop.</small></span><span class="tool-card-arrow" aria-hidden="true">→</span></button>
@@ -38,7 +39,7 @@
         <button class="tool-card" type="button" data-tool="convert"><span class="tool-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5M4 7v14h11"/><path d="M10 13h6m-6 3h6"/></svg></span><span class="tool-card-copy"><strong>Format converter</strong><small>Convert image files or browse PDF pages.</small></span><span class="tool-card-arrow" aria-hidden="true">→</span></button>
       </div>
     </section>
-    <div id="editorView" hidden>
+    <div id="editorView" class="page-view" hidden>
     <section class="intro" aria-labelledby="page-title">
       <h1 id="page-title">Background <span>remover</span></h1>
       <p class="intro-copy">Remove solid or evenly colored backgrounds from images.</p>
@@ -127,6 +128,7 @@
         <div class="preview-bottom"><span class="checker-key"><i></i>Transparent areas</span><div class="compare-controls" id="compareControls" hidden><span>Compare</span><div class="comparison-toggle" id="comparisonToggle" data-state="after" role="group" aria-label="Choose before or after image"><span class="comparison-thumb" aria-hidden="true"></span><button type="button" data-comparison="before" aria-pressed="false">Before</button><button type="button" data-comparison="after" aria-pressed="true">After</button></div></div><div class="pdf-page-controls" id="pdfPageControls" hidden><label for="pdfPageSlider">PDF page <output id="pdfPageValue">1 / 1</output></label><input id="pdfPageSlider" type="range" min="1" max="1" value="1" disabled></div><span id="canvasHint">Your image never leaves this browser.</span></div>
       </section>
     </section>
+    </div>
     </div>
   </main>
 </body>

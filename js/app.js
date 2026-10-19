@@ -5,6 +5,7 @@
   const panels={remove:$('#removeControls'),border:$('#borderControls'),recolor:$('#recolorControls'),crop:$('#cropControls'),resize:$('#resizeControls'),convert:$('#convertControls')};
   const toolHome=$('#toolHome'),editorView=$('#editorView');
   const colorRules=[];
+  let activePage='home',pageTransitionTimer=0,toolTransitionTimer=0,toolTransitionToken=0;
   let sourceImage=null,sourcePixels=null,beforeKey='',sourceName='image',sourceUrl='',pdfFileName='',pdfPageIndex=0,pdfPageRequest=0,currentTool='remove',background=[255,255,255],picking=false,renderTimer=0,generation=0,processedImage=null,pdfPages=null,backgroundRemovalFound=true,comparisonState='after',resizeRatio=1,previewZoom=1,zoomPanX=0,zoomPanY=0;
 
   function clearCurrentImage(){
@@ -20,20 +21,42 @@
   }
 
   function selectTool(tool){
-    if(tool!==currentTool)clearCurrentImage();
-    currentTool=tool;document.body.dataset.tool=tool;Object.entries(panels).forEach(([name,panel])=>panel.hidden=name!==tool);toolHome.hidden=true;editorView.hidden=false;$('.tools-menu').open=false;
+    const previousTool=currentTool;
+    if(tool!==previousTool)clearCurrentImage();
+    currentTool=tool;document.body.dataset.tool=tool;
+    if(previousTool!==tool)transitionToolPanel(panels[tool],panels[previousTool]);
+    if(activePage!=='editor'){activePage='editor';transitionPageView(editorView,toolHome);}
+    $('.tools-menu').hidden=false;$('.tools-menu').open=false;
     const titles={remove:['Background','remover'],border:['Image','border'],recolor:['Color','replacement'],crop:['Crop','image'],resize:['Resize','image'],convert:['Format','converter']};
     const descriptions={remove:'Remove matching background colors throughout the image, including enclosed areas.',border:'Add outlines that follow the visible shape of the image.',recolor:'Replace colors and control how nearby shades are matched.',crop:'Choose an aspect ratio, then move and resize the crop frame.',resize:'Set output dimensions and choose how the image is resampled.',convert:'Convert images or browse pages in a PDF.'};
     $('#page-title').innerHTML=`${titles[tool][0]} <span>${titles[tool][1]}</span>`;$('.intro-copy').textContent=descriptions[tool];
   }
   document.querySelectorAll('[data-tool]').forEach(button=>button.addEventListener('click',()=>selectTool(button.dataset.tool)));
-  $('.brand').addEventListener('click',event=>{event.preventDefault();clearCurrentImage();$('.tools-menu').open=false;editorView.hidden=true;toolHome.hidden=false;});
+  $('.brand').addEventListener('click',event=>{event.preventDefault();if(activePage==='home')return;activePage='home';clearCurrentImage();$('.tools-menu').open=false;$('.tools-menu').hidden=true;transitionPageView(toolHome,editorView);});
 
   const averageCorner=(data,x,y,w,h)=>{let r=0,g=0,b=0,n=0;for(let dy=0;dy<4;dy++)for(let dx=0;dx<4;dx++){const p=(Math.min(h-1,y+dy)*w+Math.min(w-1,x+dx))*4;if(data.data[p+3]>180){r+=data.data[p];g+=data.data[p+1];b+=data.data[p+2];n++;}}return n?[r/n,g/n,b/n]:[255,255,255];};
   function setBackground(color,label='Picked from your image'){background=color.map(Math.round);$('#sampleSwatch').style.backgroundColor=`rgb(${background.join(',')})`;$('#sampleLabel').textContent=label;if(sourceImage)scheduleRender();}
   function scheduleRender(delay=100){clearTimeout(renderTimer);$('#previewStatus').textContent='UPDATING IMAGE';renderTimer=setTimeout(()=>requestAnimationFrame(render),delay);}
   function setZoom(value){previewZoom=Math.max(1,Math.min(4,value));if(previewZoom===1)zoomPanX=zoomPanY=0;canvasStack.style.transform=`translate(${zoomPanX}px,${zoomPanY}px) scale(${previewZoom})`;canvasStack.classList.toggle('zoomed',previewZoom>1);$('#zoomLabel').textContent=previewZoom===1?'Fit':`${Math.round(previewZoom*100)}%`;$('#zoomOut').disabled=!sourceImage||previewZoom<=1;$('#zoomIn').disabled=!sourceImage||previewZoom>=4;$('#zoomFit').disabled=!sourceImage||previewZoom===1;if(sourceImage)$('#canvasHint').textContent=previewZoom>1&&currentTool!=='crop'?'Drag the image to pan · Export size is unchanged':currentTool==='crop'?'Drag the crop frame to reposition it.':'Drag the comparison slider to see before and after.';}
   function panZoom(dx,dy){const rect=$('#canvasWrap').getBoundingClientRect(),maxX=Math.max(0,(canvasStack.offsetWidth*previewZoom-rect.width)/2),maxY=Math.max(0,(canvasStack.offsetHeight*previewZoom-rect.height)/2);zoomPanX=Math.max(-maxX,Math.min(maxX,zoomPanX+dx));zoomPanY=Math.max(-maxY,Math.min(maxY,zoomPanY+dy));canvasStack.style.transform=`translate(${zoomPanX}px,${zoomPanY}px) scale(${previewZoom})`;}
+
+  function transitionPageView(show,hide){
+    clearTimeout(pageTransitionTimer);show.hidden=false;hide.hidden=false;
+    show.classList.remove('view-exit');hide.classList.remove('view-enter');
+    show.classList.add('view-enter');hide.classList.add('view-exit');
+    void show.offsetWidth;
+    requestAnimationFrame(()=>show.classList.remove('view-enter'));
+    pageTransitionTimer=setTimeout(()=>{hide.hidden=true;hide.classList.remove('view-exit');},240);
+  }
+
+  function transitionToolPanel(show,hide){
+    clearTimeout(toolTransitionTimer);const token=++toolTransitionToken;
+    Object.values(panels).forEach(panel=>{panel.classList.remove('controls-enter','controls-exit');panel.hidden=panel!==show&&panel!==hide;});
+    show.hidden=false;show.classList.add('controls-enter');
+    if(hide){hide.hidden=false;hide.classList.add('controls-exit');}
+    void show.offsetWidth;requestAnimationFrame(()=>show.classList.remove('controls-enter'));
+    toolTransitionTimer=setTimeout(()=>{if(token!==toolTransitionToken)return;if(hide){hide.hidden=true;hide.classList.remove('controls-exit');}},240);
+  }
 
   function render(){
     if(!sourceImage)return;const token=++generation,w=sourceImage.naturalWidth,h=sourceImage.naturalHeight;
