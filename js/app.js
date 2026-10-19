@@ -3,6 +3,7 @@
   const input=$('#fileInput'),dropZone=$('#dropZone'),canvas=$('#previewCanvas'),beforeCanvas=$('#beforeCanvas'),canvasStack=$('#canvasStack');
   const ctx=canvas.getContext('2d',{willReadFrequently:true}),beforeCtx=beforeCanvas.getContext('2d');
   const panels={remove:$('#removeControls'),border:$('#borderControls'),recolor:$('#recolorControls'),crop:$('#cropControls'),resize:$('#resizeControls'),convert:$('#convertControls')};
+  const toolHome=$('#toolHome'),editorView=$('#editorView'),allToolsButton=$('#allToolsButton');
   const colorRules=[];
   let sourceImage=null,sourcePixels=null,beforeKey='',sourceName='image',sourceUrl='',pdfFileName='',pdfPageIndex=0,pdfPageRequest=0,currentTool='remove',background=[255,255,255],picking=false,renderTimer=0,generation=0,processedImage=null,pdfPages=null,backgroundRemovalFound=true,comparisonState='after',resizeRatio=1,previewZoom=1,zoomPanX=0,zoomPanY=0;
 
@@ -11,7 +12,7 @@
     canvas.width=canvas.height=beforeCanvas.width=beforeCanvas.height=0;canvasStack.hidden=true;$('#emptyState').hidden=false;$('#fileInfo').hidden=true;
     $('#previewStatus').textContent='READY WHEN YOU ARE';$('#previewDimensions').textContent='';$('#compareControls').hidden=true;$('#pdfPageControls').hidden=true;$('#pdfPageSlider').disabled=true;
     $('#zoomControls').hidden=true;setZoom(1);
-    $('#downloadButton').disabled=true;$('#copyButton').disabled=true;$('#tolerance').disabled=true;$('#sampleButton').disabled=true;
+    $('#downloadButton').disabled=true;$('#copyButton').disabled=true;$('#tolerance').disabled=true;$('#sampleButton').disabled=true;$('#removalMode').disabled=true;
     $('#borderWidth').disabled=true;$('#outlineCount').disabled=true;$('#addColorButton').disabled=true;$('#colorSensitivity').disabled=true;$('#keepGradients').disabled=true;
     $('#cropRatio').disabled=true;$('#smartCropButton').disabled=true;$('#resizeWidth').disabled=true;$('#resizeHeight').disabled=true;$('#lockResizeRatio').disabled=true;$('#smoothResize').disabled=true;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx','#cropWidthInput','#cropHeightInput'].forEach(id=>$(id).disabled=true);
     $('#canvasHint').textContent='Your image never leaves this browser.';$('#pickOverlay').hidden=true;picking=false;$('#sampleButton').textContent='Pick color';
@@ -20,12 +21,13 @@
 
   function selectTool(tool){
     if(tool!==currentTool)clearCurrentImage();
-    currentTool=tool;document.body.dataset.tool=tool;Object.entries(panels).forEach(([name,panel])=>panel.hidden=name!==tool);$('.tools-menu').open=false;
+    currentTool=tool;document.body.dataset.tool=tool;Object.entries(panels).forEach(([name,panel])=>panel.hidden=name!==tool);toolHome.hidden=true;editorView.hidden=false;allToolsButton.hidden=false;
     const titles={remove:['Background','remover'],border:['Image','border'],recolor:['Color','replacement'],crop:['Crop','image'],resize:['Resize','image'],convert:['Format','converter']};
-    const descriptions={remove:'Remove solid or evenly colored backgrounds from images.',border:'Add outlines that follow the visible shape of the image.',recolor:'Replace colors and control how nearby shades are matched.',crop:'Choose an aspect ratio, then move and resize the crop frame.',resize:'Set output dimensions and choose how the image is resampled.',convert:'Convert images or browse pages in a PDF.'};
+    const descriptions={remove:'Remove matching background colors throughout the image, including enclosed areas.',border:'Add outlines that follow the visible shape of the image.',recolor:'Replace colors and control how nearby shades are matched.',crop:'Choose an aspect ratio, then move and resize the crop frame.',resize:'Set output dimensions and choose how the image is resampled.',convert:'Convert images or browse pages in a PDF.'};
     $('#page-title').innerHTML=`${titles[tool][0]} <span>${titles[tool][1]}</span>`;$('.intro-copy').textContent=descriptions[tool];
   }
   document.querySelectorAll('[data-tool]').forEach(button=>button.addEventListener('click',()=>selectTool(button.dataset.tool)));
+  allToolsButton.addEventListener('click',()=>{clearCurrentImage();editorView.hidden=true;toolHome.hidden=false;allToolsButton.hidden=true;});
 
   const averageCorner=(data,x,y,w,h)=>{let r=0,g=0,b=0,n=0;for(let dy=0;dy<4;dy++)for(let dx=0;dx<4;dx++){const p=(Math.min(h-1,y+dy)*w+Math.min(w-1,x+dx))*4;if(data.data[p+3]>180){r+=data.data[p];g+=data.data[p+1];b+=data.data[p+2];n++;}}return n?[r/n,g/n,b/n]:[255,255,255];};
   function setBackground(color,label='Picked from your image'){background=color.map(Math.round);$('#sampleSwatch').style.backgroundColor=`rgb(${background.join(',')})`;$('#sampleLabel').textContent=label;if(sourceImage)scheduleRender();}
@@ -41,11 +43,19 @@
       const autoSample=$('#sampleLabel').textContent==='Sampled from the corner';
       if(autoSample){background=[0,1,2].map(c=>Math.round(corners.map(color=>color[c]).sort((a,b)=>a-b).slice(1,3).reduce((sum,value)=>sum+value,0)/2));$('#sampleSwatch').style.backgroundColor=`rgb(${background.join(',')})`;}
       const candidates=autoSample?corners:[background];
-      const tolerance=Number($('#tolerance').value),outer=tolerance+34,tolerance2=tolerance*tolerance,outer2=outer*outer,size=w*h,seen=new Uint8Array(size),stack=new Int32Array(size);let top=0;
+      const tolerance=Number($('#tolerance').value),outer=tolerance+34,tolerance2=tolerance*tolerance,outer2=outer*outer,size=w*h;
       const colorDistanceSquared=p=>{let best=Infinity;for(const color of candidates){const dr=pixels[p]-color[0],dg=pixels[p+1]-color[1],db=pixels[p+2]-color[2],distance=dr*dr+dg*dg+db*db;if(distance<best)best=distance;}return best;};
-      const enqueue=index=>{if(seen[index])return;const p=index*4;if(pixels[p+3]===0){seen[index]=1;return;}if(colorDistanceSquared(p)<=outer2){seen[index]=1;stack[top++]=index;}};
-      for(let x=0;x<w;x++){enqueue(x);enqueue((h-1)*w+x);}for(let y=1;y<h-1;y++){enqueue(y*w);enqueue(y*w+w-1);}
-      let changed=0;while(top){const i=stack[--top],x=i%w,y=(i/w)|0,p=i*4,distance2=colorDistanceSquared(p),alpha=pixels[p+3];pixels[p+3]=distance2<=tolerance2?0:Math.round(alpha*Math.min(1,(Math.sqrt(distance2)-tolerance)/(outer-tolerance)));if(pixels[p+3]<alpha-3)changed++;if(x)enqueue(i-1);if(x<w-1)enqueue(i+1);if(y)enqueue(i-w);if(y<h-1)enqueue(i+w);}backgroundRemovalFound=changed>Math.max(1,size*.001);
+      let changed=0;
+      if($('#removalMode').value==='connected'){
+        const seen=new Uint8Array(size),stack=new Int32Array(size);let top=0;
+        const enqueue=index=>{if(seen[index])return;const p=index*4;if(!pixels[p+3]){seen[index]=1;return;}if(colorDistanceSquared(p)<=outer2){seen[index]=1;stack[top++]=index;}};
+        for(let x=0;x<w;x++){enqueue(x);enqueue((h-1)*w+x);}for(let y=1;y<h-1;y++){enqueue(y*w);enqueue(y*w+w-1);}
+        while(top){const i=stack[--top],p=i*4,alpha=pixels[p+3],distance2=colorDistanceSquared(p);pixels[p+3]=distance2<=tolerance2?0:Math.round(alpha*smoothstep(tolerance,outer,Math.sqrt(distance2)));if(pixels[p+3]<alpha-3)changed++;const x=i%w,y=(i/w)|0;if(x)enqueue(i-1);if(x<w-1)enqueue(i+1);if(y)enqueue(i-w);if(y<h-1)enqueue(i+w);}
+      }else{
+        // Match background-colored pixels everywhere, including enclosed gaps.
+        for(let i=0;i<size;i++){const p=i*4,alpha=pixels[p+3];if(!alpha)continue;const distance2=colorDistanceSquared(p);if(distance2<=outer2){pixels[p+3]=distance2<=tolerance2?0:Math.round(alpha*smoothstep(tolerance,outer,Math.sqrt(distance2)));if(pixels[p+3]<alpha-3)changed++;}}
+      }
+      backgroundRemovalFound=changed>Math.max(1,size*.001);
     }
     if(token!==generation)return;processedImage=imageData;updateOutput();
   }
@@ -141,7 +151,7 @@
     const image=new Image();image.onload=()=>{
       if(pageRequest&&pageRequest!==pdfPageRequest){if(blobUrl)URL.revokeObjectURL(blobUrl);return;}if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl=blobUrl;sourceImage=image;if(!pageRequest)setZoom(1);const pixelCanvas=document.createElement('canvas');pixelCanvas.width=image.naturalWidth;pixelCanvas.height=image.naturalHeight;const pixelCtx=pixelCanvas.getContext('2d',{willReadFrequently:true});pixelCtx.drawImage(image,0,0);sourcePixels=pixelCtx.getImageData(0,0,image.naturalWidth,image.naturalHeight);beforeKey='';sourceName=name.replace(/\.[^.]+$/,'')||'image';colorRules.splice(0);$('#fileInfo').hidden=false;$('#emptyState').hidden=true;canvasStack.hidden=false;
       $('#fileName').textContent=name;$('#fileDimensions').textContent=`${image.naturalWidth} × ${image.naturalHeight} px`;$('#fileThumb').style.backgroundImage=`url("${url}")`;
-      $('#canvasHint').textContent=currentTool==='crop'?'Drag the crop frame to reposition it.':'Drag the comparison slider to see before and after.';$('#tolerance').disabled=false;$('#sampleButton').disabled=false;$('#borderWidth').disabled=false;$('#outlineCount').disabled=false;$('#addColorButton').disabled=false;$('#colorSensitivity').disabled=false;$('#keepGradients').disabled=false;
+      $('#canvasHint').textContent=currentTool==='crop'?'Drag the crop frame to reposition it.':'Drag the comparison slider to see before and after.';$('#tolerance').disabled=false;$('#sampleButton').disabled=false;$('#removalMode').disabled=false;$('#borderWidth').disabled=false;$('#outlineCount').disabled=false;$('#addColorButton').disabled=false;$('#colorSensitivity').disabled=false;$('#keepGradients').disabled=false;
       $('#cropRatio').disabled=false;$('#smartCropButton').disabled=false;$('#resizeWidth').disabled=false;$('#resizeHeight').disabled=false;$('#lockResizeRatio').disabled=false;$('#smoothResize').disabled=false;resizeRatio=image.naturalWidth/image.naturalHeight;$('#resizeWidth').value=image.naturalWidth;$('#resizeHeight').value=image.naturalHeight;['#cropWidthPx','#cropHeightPx','#cropLeftPx','#cropTopPx'].forEach(id=>$(id).disabled=false);
       $('#cropRatio').value='free';$('#cropCustom').hidden=true;setCropNumbers({w:Math.max(1,Math.round(image.naturalWidth*.8)),h:Math.max(1,Math.round(image.naturalHeight*.8)),x:Math.round(image.naturalWidth*.1),y:Math.round(image.naturalHeight*.1)});comparisonState='after';
       refreshOutlineColors();refreshColorRules();setBackground([255,255,255],'Sampled from the corner');scheduleRender();
@@ -202,6 +212,7 @@
   });
   cropFrame.addEventListener('pointerup',()=>{if(cropGesture){cropGesture=null;scheduleRender(0);}});cropFrame.addEventListener('pointercancel',()=>{if(cropGesture){cropGesture=null;scheduleRender(0);}});
   $('#tolerance').addEventListener('input',()=>{$('#toleranceValue').value=$('#tolerance').value;scheduleRender();});
+  $('#removalMode').addEventListener('change',()=>scheduleRender());
   $('#sampleButton').addEventListener('click',()=>{picking=true;$('#pickOverlay').textContent='Click a background color to sample it';$('#pickOverlay').hidden=false;$('#sampleButton').textContent='Cancel';});
   $('#addColorButton').addEventListener('click',()=>{picking=true;$('#pickOverlay').textContent='Click the color you want to replace';$('#pickOverlay').hidden=false;});
   canvasStack.addEventListener('click',event=>{if(!picking)return;const rect=canvas.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)return;const x=Math.max(0,Math.min(canvas.width-1,Math.floor((event.clientX-rect.left)*canvas.width/rect.width))),y=Math.max(0,Math.min(canvas.height-1,Math.floor((event.clientY-rect.top)*canvas.height/rect.height)));if(currentTool==='recolor'){const p=(y*processedImage.width+x)*4,data=processedImage.data;if(data[p+3]<16)return;colorRules.push({from:[data[p],data[p+1],data[p+2]],to:'#ff6b6b'});refreshColorRules();}else{const data=beforeCtx.getImageData(x,y,1,1).data;setBackground([data[0],data[1],data[2]]);}picking=false;$('#pickOverlay').hidden=true;$('#sampleButton').textContent='Pick color';if(currentTool==='recolor')updateOutput();});
