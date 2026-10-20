@@ -23,7 +23,7 @@
   function selectTool(tool){
     const previousTool=currentTool;
     if(tool!==previousTool)clearCurrentImage();
-    currentTool=tool;document.body.dataset.tool=tool;
+    currentTool=tool;input.accept=tool==='convert'?'image/jpeg,image/png,image/webp,image/svg+xml,application/pdf,.jpg,.jpeg,.png,.webp,.svg,.pdf':'image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf';document.body.dataset.tool=tool;
     if(previousTool!==tool)transitionToolPanel(panels[tool],panels[previousTool]);
     if(activePage!=='editor'){activePage='editor';transitionPageView(editorView,toolHome);}
     $('.tools-menu').hidden=false;$('.tools-menu').open=false;
@@ -207,8 +207,8 @@
     image.onerror=()=>{if(blobUrl)URL.revokeObjectURL(blobUrl);if(!pageRequest||pageRequest===pdfPageRequest)alert('This image could not be opened. Please try another file.');};image.src=url;
   }
   async function loadFile(file){
-    if(!file)return;const isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name),isImage=/^image\/(jpeg|png|webp)$/.test(file.type)||/\.(jpe?g|png|webp)$/i.test(file.name);
-    if(!isPdf&&!isImage){alert('Choose a JPG, PNG, WebP, or PDF file.');return;}if(file.size>25*1024*1024){alert('This file is larger than 25 MB. Please choose a smaller file.');return;}
+    if(!file)return;const isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name),isSvg=file.type==='image/svg+xml'||/\.svg$/i.test(file.name),isImage=/^image\/(jpeg|png|webp)$/.test(file.type)||/\.(jpe?g|png|webp)$/i.test(file.name)||(currentTool==='convert'&&isSvg);
+    if(!isPdf&&!isImage){alert(currentTool==='convert'?'Choose a JPG, PNG, WebP, SVG, or PDF file.':'Choose a JPG, PNG, WebP, or PDF file.');return;}if(file.size>25*1024*1024){alert('This file is larger than 25 MB. Please choose a smaller file.');return;}
     if(isPdf){$('#previewStatus').textContent='CONVERTING PDF PAGES';try{if(currentTool==='convert'){pdfPages=await renderPdf(file,true);pdfFileName=file.name;pdfPageIndex=0;setZoom(1);$('#pdfPageSlider').min=1;$('#pdfPageSlider').max=pdfPages.length;$('#pdfPageSlider').disabled=false;$('#pdfPageValue').textContent=`1 / ${pdfPages.length}`;$('#pdfPageControls').hidden=false;loadPdfPage(0);for(const option of $('#exportFormat').options)option.disabled=!['image/png','image/jpeg','image/webp'].includes(option.value);$('#exportFormat').value='image/png';}else{pdfPages=null;pdfFileName='';$('#pdfPageControls').hidden=true;loadImageUrl(await renderPdf(file),file.name);}}catch(error){console.error(error);alert('This PDF could not be opened. Check your internet connection and try again.');$('#previewStatus').textContent='READY WHEN YOU ARE';}return;}
     pdfPages=null;pdfFileName='';$('#pdfPageControls').hidden=true;for(const option of $('#exportFormat').options)option.disabled=false;
     const url=URL.createObjectURL(file),image=new Image();image.onload=()=>{if(image.naturalWidth*image.naturalHeight>16000000){URL.revokeObjectURL(url);alert('This image has too many pixels to process smoothly. Please use an image under 16 megapixels.');return;}loadImageUrl(url,file.name,url);};image.onerror=()=>{URL.revokeObjectURL(url);alert('This image could not be opened. Please try another file.');};image.src=url;
