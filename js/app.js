@@ -60,10 +60,13 @@
     toolTransitionTimer=setTimeout(()=>{if(token!==toolTransitionToken)return;if(hide){hide.hidden=true;hide.classList.remove('controls-exit');}},240);
   }
 
-  function smoothUpscale(context,width,height){
-    if(width<3||height<3)return;const image=context.getImageData(0,0,width,height),data=image.data,source=new Uint8ClampedArray(data),blend=.7,threshold=4;
-    for(let y=0;y<height;y++)for(let x=0;x<width;x++){const i=(y*width+x)*4,up=y?i-width*4:i,down=y<height-1?i+width*4:i,left=x?i-4:i,right=x<width-1?i+4:i;let edge=Math.max(Math.abs(source[i+3]-source[up+3]),Math.abs(source[i+3]-source[down+3]),Math.abs(source[i+3]-source[left+3]),Math.abs(source[i+3]-source[right+3]));for(let c=0;c<3;c++)edge=Math.max(edge,Math.abs(source[i+c]-source[up+c]),Math.abs(source[i+c]-source[down+c]),Math.abs(source[i+c]-source[left+c]),Math.abs(source[i+c]-source[right+c]));if(edge<threshold)continue;const neighborAlpha=(source[up+3]+source[down+3]+source[left+3]+source[right+3])/4,alpha=source[i+3]+(neighborAlpha-source[i+3])*blend;for(let c=0;c<3;c++){const weighted=source[up+c]*source[up+3]+source[down+c]*source[down+3]+source[left+c]*source[left+3]+source[right+c]*source[right+3],neighborColor=neighborAlpha?weighted/(neighborAlpha*4):source[i+c];data[i+c]=Math.max(0,Math.min(255,source[i+c]+(neighborColor-source[i+c])*blend));}data[i+3]=Math.max(0,Math.min(255,alpha));}
-    context.putImageData(image,0,0);
+  function denoiseResizeSource(source){
+    const softened=document.createElement('canvas');softened.width=source.width;softened.height=source.height;const context=softened.getContext('2d');context.filter='blur(0.4px)';context.drawImage(source,0,0);context.filter='none';return softened;
+  }
+  function enhanceUpscale(context,width,height){
+    if(width<3||height<3)return;const lowFrequency=document.createElement('canvas');lowFrequency.width=width;lowFrequency.height=height;const lowContext=lowFrequency.getContext('2d',{willReadFrequently:true});lowContext.filter='blur(1.1px)';lowContext.drawImage(context.canvas,0,0);lowContext.filter='none';const detail=context.getImageData(0,0,width,height),base=detail.data,low=lowContext.getImageData(0,0,width,height).data,amount=.65,threshold=2;
+    for(let i=0;i<base.length;i+=4){if(base[i+3]<245||low[i+3]<245)continue;for(let c=0;c<3;c++){const highPass=base[i+c]-low[i+c];if(Math.abs(highPass)>threshold)base[i+c]=Math.max(0,Math.min(255,base[i+c]+highPass*amount));}}
+    context.putImageData(detail,0,0);
   }
 
   function render(){
@@ -151,7 +154,19 @@
         lp[p]=color[0];lp[p+1]=color[1];lp[p+2]=color[2];lp[p+3]=Math.round(255*(1-smoothstep(maxRadius-.5,maxRadius+.5,radius)));
       }workCtx.putImageData(layer,0,0);
     }
-    if(border||resize){const sourceLayer=document.createElement('canvas');sourceLayer.width=w;sourceLayer.height=h;sourceLayer.getContext('2d').putImageData(output,0,0);if(border)workCtx.drawImage(sourceLayer,padding,padding);else{const enhance=$('#smoothResize').checked;workCtx.imageSmoothingEnabled=enhance;workCtx.imageSmoothingQuality='high';if(enhance&&outW<w&&outH<h){let stage=sourceLayer;while(stage.width/outW>2||stage.height/outH>2){const next=document.createElement('canvas');next.width=Math.max(outW,Math.ceil(stage.width/2));next.height=Math.max(outH,Math.ceil(stage.height/2));const stageCtx=next.getContext('2d');stageCtx.imageSmoothingEnabled=true;stageCtx.imageSmoothingQuality='high';stageCtx.drawImage(stage,0,0,next.width,next.height);stage=next;}workCtx.drawImage(stage,0,0,outW,outH);}else if(enhance&&(outW>w||outH>h)){if(outW>=w&&outH>=h){let stage=sourceLayer;while(outW/stage.width>2||outH/stage.height>2){const next=document.createElement('canvas');next.width=Math.min(outW,stage.width*2);next.height=Math.min(outH,stage.height*2);const stageCtx=next.getContext('2d');stageCtx.imageSmoothingEnabled=true;stageCtx.imageSmoothingQuality='high';stageCtx.drawImage(stage,0,0,next.width,next.height);stage=next;}workCtx.drawImage(stage,0,0,outW,outH);}else workCtx.drawImage(sourceLayer,0,0,outW,outH);smoothUpscale(workCtx,outW,outH);}else workCtx.drawImage(sourceLayer,0,0,outW,outH);}}
+    if(border||resize){
+      const sourceLayer=document.createElement('canvas');sourceLayer.width=w;sourceLayer.height=h;sourceLayer.getContext('2d').putImageData(output,0,0);
+      if(border)workCtx.drawImage(sourceLayer,padding,padding);
+      else{
+        const enhance=$('#smoothResize').checked,upscaling=outW>w||outH>h,downscaling=outW<w&&outH<h,hasResize=outW!==w||outH!==h;
+        workCtx.imageSmoothingEnabled=enhance;workCtx.imageSmoothingQuality='high';
+        const scaleSource=enhance&&hasResize?denoiseResizeSource(sourceLayer):sourceLayer;
+        if(enhance&&downscaling){let stage=scaleSource;while(stage.width/outW>2||stage.height/outH>2){const next=document.createElement('canvas');next.width=Math.max(outW,Math.ceil(stage.width/2));next.height=Math.max(outH,Math.ceil(stage.height/2));const stageCtx=next.getContext('2d');stageCtx.imageSmoothingEnabled=true;stageCtx.imageSmoothingQuality='high';stageCtx.drawImage(stage,0,0,next.width,next.height);stage=next;}workCtx.drawImage(stage,0,0,outW,outH);}
+        else if(enhance&&upscaling&&outW>=w&&outH>=h){let stage=scaleSource;while(outW/stage.width>2||outH/stage.height>2){const next=document.createElement('canvas');next.width=Math.min(outW,stage.width*2);next.height=Math.min(outH,stage.height*2);const stageCtx=next.getContext('2d');stageCtx.imageSmoothingEnabled=true;stageCtx.imageSmoothingQuality='high';stageCtx.drawImage(stage,0,0,next.width,next.height);stage=next;}workCtx.drawImage(stage,0,0,outW,outH);}
+        else workCtx.drawImage(scaleSource,0,0,outW,outH);
+        if(enhance&&upscaling)enhanceUpscale(workCtx,outW,outH);
+      }
+    }
     else workCtx.putImageData(output,0,0);
     let sx=0,sy=0,sw=outW,sh=outH;
     if(currentTool==='crop'){const crop=cropRect(w,h);sx=crop.x;sy=crop.y;sw=crop.w;sh=crop.h;}
