@@ -23,7 +23,7 @@
   function selectTool(tool){
     const previousTool=currentTool;
     if(tool!==previousTool)clearCurrentImage();
-    currentTool=tool;input.accept=tool==='convert'?'image/jpeg,image/png,image/webp,image/svg+xml,application/pdf,.jpg,.jpeg,.png,.webp,.svg,.pdf':'image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf';document.body.dataset.tool=tool;
+    currentTool=tool;const converter=tool==='convert';input.accept=converter?'image/jpeg,image/png,image/webp,image/svg+xml,application/pdf,.jpg,.jpeg,.png,.webp,.svg,.pdf':'image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf';$('.file-types').innerHTML=`JPG &middot; PNG &middot; WEBP${converter?' &middot; SVG':''} &middot; PDF <i>&middot;</i> UP TO 25 MB`;document.body.dataset.tool=tool;
     if(previousTool!==tool)transitionToolPanel(panels[tool],panels[previousTool]);
     if(activePage!=='editor'){activePage='editor';transitionPageView(editorView,toolHome);}
     $('.tools-menu').hidden=false;$('.tools-menu').open=false;
