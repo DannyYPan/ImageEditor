@@ -106,7 +106,7 @@
           <div class="crop-fields resize-dimensions"><label>Width (px)<input id="resizeWidth" type="number" min="1" max="16000" disabled></label><label>Height (px)<input id="resizeHeight" type="number" min="1" max="16000" disabled></label></div>
           <label class="gradient-switch"><input id="lockResizeRatio" type="checkbox" checked disabled><span class="switch-track" aria-hidden="true"></span><span>Keep aspect ratio</span></label>
           <label class="gradient-switch"><input id="smoothResize" type="checkbox" disabled><span class="switch-track" aria-hidden="true"></span><span>Enhance image quality</span></label>
-          <p class="tool-description small">Uses progressive resampling when resizing and softens uneven pixel edges when enlarging. Fine details may become slightly softer. Output is limited to 16 megapixels.</p>
+          <p class="tool-description small">On: uses progressive resampling and softens uneven edges when enlarging. Off: uses nearest-neighbor scaling with no smoothing. Fine details may become softer when enhanced. Output is limited to 16 megapixels.</p>
         </div>
         <div id="convertControls" class="tool-controls" hidden>
           <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Image converter</h2><p>Convert the loaded image in your browser</p></div></div>
