@@ -61,21 +61,21 @@
         <div id="removeControls" class="tool-controls">
         <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Background removal</h2><p>Adjust color matching</p></div></div>
         <div class="control-block">
-          <div class="control-title-row"><label for="tolerance">Color tolerance</label><output id="toleranceValue" for="tolerance">48</output></div>
+          <div class="control-title-row"><label for="tolerance">Color tolerance</label><span class="range-number-group"><input id="toleranceNumber" class="range-number" type="number" min="12" max="220" step="1" value="48" aria-label="Color tolerance value" disabled></span></div>
           <input id="tolerance" type="range" min="12" max="220" value="48" disabled>
           <div class="range-ends"><span>Precise</span><span>More forgiving</span></div>
         </div>
         <label class="field-label removal-mode-label" for="removalMode">Removal mode</label>
         <select id="removalMode" class="tool-select removal-mode-select" disabled><option value="all">All matching areas</option><option value="connected">Areas connected to edge</option></select>
-        <div class="sample-control"><span class="sample-swatch" id="sampleSwatch"></span><span class="sample-copy"><strong>Background color</strong><small id="sampleLabel">Sampled from the corner</small></span><button id="sampleButton" class="sample-button" type="button" disabled>Pick color</button></div>
+        <div class="sample-control"><span class="sample-swatch" id="sampleSwatch"></span><span class="sample-copy"><strong>Background color</strong><small id="sampleLabel">Sampled from the corner</small></span><button id="sampleButton" class="sample-button" type="button" disabled>Pick color</button></div><div class="background-color-controls"><input id="backgroundColor" type="color" value="#ffffff" aria-label="Background color picker" disabled><input id="backgroundHex" class="outline-hex" type="text" value="#ffffff" aria-label="Background color hex" placeholder="#ffffff" maxlength="7" pattern="^#?[0-9a-fA-F]{6}$" disabled><span>Hex</span></div>
         <p class="tip">For a different background, choose <b>Pick color</b> and click it in your image.</p>
         </div>
         <div id="borderControls" class="tool-controls" hidden>
           <div class="panel-heading settings-heading"><span class="step">02</span><div><h2>Border maker</h2><p>Trace the visible shape</p></div></div>
           <p class="tool-description">The outline follows visible and translucent pixels, including transparent PNGs. It expands outward from your artwork.</p>
-          <label class="field-label" for="borderWidth">Default thickness <output id="borderWidthValue">8 px</output></label>
+          <div class="field-label"><label for="borderWidth">Default thickness</label><span class="range-number-group"><input id="borderWidthNumber" class="range-number" type="number" min="1" max="100" step="1" value="8" aria-label="Default border thickness in pixels" disabled></span></div>
           <input id="borderWidth" class="full-range" type="range" min="1" max="100" value="8" disabled>
-          <label class="field-label outline-count-label" for="outlineCount">Number of outlines <output id="outlineCountValue">1</output></label>
+          <div class="field-label outline-count-label"><label for="outlineCount">Number of outlines</label><span class="range-number-group"><input id="outlineCountNumber" class="range-number" type="number" min="1" max="5" step="1" value="1" aria-label="Number of outlines" disabled></span></div>
           <input id="outlineCount" class="full-range" type="range" min="1" max="5" value="1" disabled>
           <div id="outlineColors" class="outline-colors"></div>
           <p class="tool-description small">Set the default above, then adjust each outline. Listed from inner to outer.</p>
@@ -85,7 +85,7 @@
           <p class="tool-description">Pick a color in the preview, then choose its replacement. Add as many color swaps as you need.</p>
           <button id="addColorButton" class="sample-button add-color-button" type="button" disabled>＋ Pick a color to replace</button>
           <label class="gradient-switch"><input id="keepGradients" type="checkbox" disabled><span class="switch-track" aria-hidden="true"></span><span>Keep gradients</span></label>
-          <label class="field-label sensitivity-label" for="colorSensitivity">Sensitivity <output id="colorSensitivityValue">35</output></label>
+          <div class="field-label sensitivity-label"><label for="colorSensitivity">Sensitivity</label><span class="range-number-group"><input id="colorSensitivityNumber" class="range-number" type="number" min="5" max="150" step="1" value="35" aria-label="Color replacement sensitivity" disabled></span></div>
           <input id="colorSensitivity" class="full-range" type="range" min="5" max="150" value="35" disabled>
           <div class="range-ends recolor-ends"><span>Similar colors only</span><span>Include more shades</span></div>
           <div id="colorRules" class="color-rules"><p class="empty-rules">No colors selected yet.</p></div>
@@ -96,7 +96,7 @@
           <label class="field-label" for="cropRatio">Aspect ratio</label>
           <select id="cropRatio" class="tool-select" disabled><option value="free">Free crop</option><option value="1:1">1:1 · Square</option><option value="16:9">16:9 · Widescreen</option><option value="4:3">4:3 · Standard</option><option value="3:2">3:2 · Photo</option><option value="9:16">9:16 · Portrait</option><option value="custom">Custom ratio</option></select>
           <div class="crop-custom" id="cropCustom" hidden><label>Ratio width<input id="cropRatioW" type="number" min="1" value="1"></label><span>:</span><label>Ratio height<input id="cropRatioH" type="number" min="1" value="1"></label></div>
-          <div class="crop-fields crop-dimensions"><label>Width (px)<input id="cropWidthInput" type="number" min="1" disabled></label><label>Height (px)<input id="cropHeightInput" type="number" min="1" disabled></label></div>
+          <div class="crop-fields crop-dimensions"><label>Width (px)<input id="cropWidthInput" type="number" min="1" step="1" inputmode="numeric" disabled></label><label>Height (px)<input id="cropHeightInput" type="number" min="1" step="1" inputmode="numeric" disabled></label></div>
           <button id="smartCropButton" class="sample-button smart-crop-button" type="button" disabled>Smart center on artwork</button>
           <div class="crop-fields" hidden><input id="cropWidthPx" type="hidden"><input id="cropHeightPx" type="hidden"><input id="cropLeftPx" type="hidden"><input id="cropTopPx" type="hidden"></div>
           <p class="crop-readout" id="cropSizeReadout">Drag the frame over the part of the image to preserve. Drag its corner to resize.</p>
