@@ -60,10 +60,8 @@
     toolTransitionTimer=setTimeout(()=>{if(token!==toolTransitionToken)return;if(hide){hide.hidden=true;hide.classList.remove('controls-exit');}},240);
   }
 
-  function sharpenUpscale(context,width,height){
-    if(width<3||height<3)return;const image=context.getImageData(0,0,width,height),data=image.data,source=new Uint8ClampedArray(data),amount=.38;
-    for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++){const i=(y*width+x)*4,up=i-width*4,down=i+width*4,left=i-4,right=i+4;if(source[i+3]<250||source[up+3]<250||source[down+3]<250||source[left+3]<250||source[right+3]<250)continue;for(let c=0;c<3;c++){const blur=(source[up+c]+source[down+c]+source[left+c]+source[right+c])/4,detail=source[i+c]-blur;if(Math.abs(detail)>1)data[i+c]=Math.max(0,Math.min(255,source[i+c]+detail*amount));}}
-    context.putImageData(image,0,0);
+  function smoothUpscale(context,width,height){
+    if(width<2||height<2)return;const softened=document.createElement('canvas');softened.width=width;softened.height=height;const smoothCtx=softened.getContext('2d');smoothCtx.filter='blur(0.7px)';smoothCtx.drawImage(context.canvas,0,0);context.clearRect(0,0,width,height);context.filter='none';context.drawImage(softened,0,0);
   }
 
   function render(){
@@ -151,7 +149,7 @@
         lp[p]=color[0];lp[p+1]=color[1];lp[p+2]=color[2];lp[p+3]=Math.round(255*(1-smoothstep(maxRadius-.5,maxRadius+.5,radius)));
       }workCtx.putImageData(layer,0,0);
     }
-    if(border||resize){const sourceLayer=document.createElement('canvas');sourceLayer.width=w;sourceLayer.height=h;sourceLayer.getContext('2d').putImageData(output,0,0);if(border)workCtx.drawImage(sourceLayer,padding,padding);else{const enhance=$('#smoothResize').checked;workCtx.imageSmoothingEnabled=true;workCtx.imageSmoothingQuality=enhance?'high':'low';if(enhance&&outW<w&&outH<h){let stage=sourceLayer;while(stage.width/outW>2||stage.height/outH>2){const next=document.createElement('canvas');next.width=Math.max(outW,Math.ceil(stage.width/2));next.height=Math.max(outH,Math.ceil(stage.height/2));const stageCtx=next.getContext('2d');stageCtx.imageSmoothingEnabled=true;stageCtx.imageSmoothingQuality='high';stageCtx.drawImage(stage,0,0,next.width,next.height);stage=next;}workCtx.drawImage(stage,0,0,outW,outH);}else if(enhance&&outW>=w&&outH>=h){let stage=sourceLayer;while(outW/stage.width>2||outH/stage.height>2){const next=document.createElement('canvas');next.width=Math.min(outW,stage.width*2);next.height=Math.min(outH,stage.height*2);const stageCtx=next.getContext('2d');stageCtx.imageSmoothingEnabled=true;stageCtx.imageSmoothingQuality='high';stageCtx.drawImage(stage,0,0,next.width,next.height);stage=next;}workCtx.drawImage(stage,0,0,outW,outH);sharpenUpscale(workCtx,outW,outH);}else workCtx.drawImage(sourceLayer,0,0,outW,outH);}}
+    if(border||resize){const sourceLayer=document.createElement('canvas');sourceLayer.width=w;sourceLayer.height=h;sourceLayer.getContext('2d').putImageData(output,0,0);if(border)workCtx.drawImage(sourceLayer,padding,padding);else{const enhance=$('#smoothResize').checked;workCtx.imageSmoothingEnabled=true;workCtx.imageSmoothingQuality=enhance?'high':'low';if(enhance&&outW<w&&outH<h){let stage=sourceLayer;while(stage.width/outW>2||stage.height/outH>2){const next=document.createElement('canvas');next.width=Math.max(outW,Math.ceil(stage.width/2));next.height=Math.max(outH,Math.ceil(stage.height/2));const stageCtx=next.getContext('2d');stageCtx.imageSmoothingEnabled=true;stageCtx.imageSmoothingQuality='high';stageCtx.drawImage(stage,0,0,next.width,next.height);stage=next;}workCtx.drawImage(stage,0,0,outW,outH);}else if(enhance&&outW>=w&&outH>=h){let stage=sourceLayer;while(outW/stage.width>2||outH/stage.height>2){const next=document.createElement('canvas');next.width=Math.min(outW,stage.width*2);next.height=Math.min(outH,stage.height*2);const stageCtx=next.getContext('2d');stageCtx.imageSmoothingEnabled=true;stageCtx.imageSmoothingQuality='high';stageCtx.drawImage(stage,0,0,next.width,next.height);stage=next;}workCtx.drawImage(stage,0,0,outW,outH);smoothUpscale(workCtx,outW,outH);}else workCtx.drawImage(sourceLayer,0,0,outW,outH);}}
     else workCtx.putImageData(output,0,0);
     let sx=0,sy=0,sw=outW,sh=outH;
     if(currentTool==='crop'){const crop=cropRect(w,h);sx=crop.x;sy=crop.y;sw=crop.w;sh=crop.h;}
